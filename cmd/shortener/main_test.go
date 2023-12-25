@@ -43,13 +43,13 @@ func Test_mainHandler(t *testing.T) {
 			method: http.MethodPost,
 			body: "https://google.com",
 			expectedCode: http.StatusCreated,
-			expectedBody: "example.com/mZmevP23\n",
+			expectedBody: "example.com/mZmevP23",
 		},
 		{
 			method: http.MethodGet,
 			uri: "/mZmevP23/qwerty",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "Too many paramerters in source path /mZmevP23/qwerty\n",
+			expectedBody: "too many parameters in source path /mZmevP23/qwerty\n",
 		},
 		{
 			method: http.MethodGet,

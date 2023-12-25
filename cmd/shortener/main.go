@@ -57,7 +57,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 			shortLinks[key] = link
 			w.Header().Add("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusCreated)
-			resBody := r.Host + r.URL.Port() + "/" + key + "\n"
+			resBody := r.Host + r.URL.Port() + "/" + key
 			w.Write([]byte(resBody))
 		}
 	default:
