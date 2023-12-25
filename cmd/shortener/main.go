@@ -36,7 +36,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Can't read request body", http.StatusBadRequest)
 			return
 		} else {
-			link := string(body) 
+			link := string(body)
 			if link == "" {
 				http.Error(w, "Boby should't be empty", http.StatusBadRequest)
 				return
@@ -57,7 +57,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 			shortLinks[key] = link
 			w.Header().Add("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusCreated)
-			resBody := r.Host + r.URL.Port() + "/" + key
+			resBody := "http://" + r.Host + r.URL.Port() + "/" + key
 			w.Write([]byte(resBody))
 		}
 	default:
