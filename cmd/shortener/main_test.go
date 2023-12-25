@@ -43,7 +43,7 @@ func Test_mainHandler(t *testing.T) {
 			method: http.MethodPost,
 			body: "https://google.com",
 			expectedCode: http.StatusCreated,
-			expectedBody: "example.com/mZmevP23",
+			expectedBody: "http://example.com/mZmevP23",
 		},
 		{
 			method: http.MethodGet,
