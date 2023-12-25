@@ -10,9 +10,9 @@ import (
 func GetKeyFromPath(path string) (string, error) {
 	pathParams := strings.Split(path, "/")
 	if len(pathParams) == 1 {
-		return "", fmt.Errorf("Paramerter not found in source path %s", path)
+		return "", fmt.Errorf("paramerter not found in source path %s", path)
 	} else if len(pathParams) > 2 {
-		return "", fmt.Errorf("Too many paramerters in source path %s", path)
+		return "", fmt.Errorf("too many parameters in source path %s", path)
 	} else {
 		return pathParams[1], nil
 	}
