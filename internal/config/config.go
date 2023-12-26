@@ -1,6 +1,6 @@
 package config
 
 type Params struct {
-	Port string `decs:"Порт запуска HTTP-сервера"`
-	ResURL string `decs:"Базовый адрес результирующего сокращённого URL"`
+	A string `decs:"Порт запуска HTTP-сервера"`
+	B string `decs:"Базовый адрес результирующего сокращённого URL"`
 }

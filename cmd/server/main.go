@@ -16,8 +16,8 @@ import (
 )
 
 var cfg = &config.Params{
-	Port:   ":8080",
-	ResURL: "http://localhost:8080/",
+	A: ":8080",
+	B: "http://localhost:8080/",
 }
 
 func main() {
@@ -32,10 +32,10 @@ func main() {
 	r.Get("/{id}", getHandler)
 	r.Post("/", postHandler)
 	log.Println("Starting server..")
-	if err := http.ListenAndServe(cfg.Port, r); err != nil {
+	if err := http.ListenAndServe(cfg.A, r); err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Server starts on port", cfg.Port)
+	log.Println("Server starts on port", cfg.A)
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		resBody := cfg.ResURL + key
+		resBody := cfg.B + key
 		w.Write([]byte(resBody))
 	}
 }
