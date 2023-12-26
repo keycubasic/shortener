@@ -15,21 +15,21 @@ func TestGetKeyFromPath(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "GetKeyFromPathOK",
-			args: args{"/a9tbDian"},
-			want: "a9tbDian",
+			name:    "GetKeyFromPathOK",
+			args:    args{"/a9tbDian"},
+			want:    "a9tbDian",
 			wantErr: false,
 		},
 		{
-			name: "GetKeyFromPathKO empty",
-			args: args{""},
-			want: "",
+			name:    "GetKeyFromPathKO empty",
+			args:    args{""},
+			want:    "",
 			wantErr: true,
 		},
 		{
-			name: "GetKeyFromPathKO multiple",
-			args: args{"/a9tbDian/3"},
-			want: "",
+			name:    "GetKeyFromPathKO multiple",
+			args:    args{"/a9tbDian/3"},
+			want:    "",
 			wantErr: true,
 		},
 	}
@@ -58,9 +58,9 @@ func TestCreateShortLink(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "TestCreateShortLinkOK",
-			args: args{[]byte("https://practicum.yandex.ru")},
-			want: "a9tbDian",
+			name:    "TestCreateShortLinkOK",
+			args:    args{[]byte("https://practicum.yandex.ru")},
+			want:    "a9tbDian",
 			wantErr: false,
 		},
 	}
