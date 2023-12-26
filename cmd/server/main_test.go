@@ -73,7 +73,7 @@ func Test_postHandler(t *testing.T) {
 			method:       http.MethodPost,
 			body:         "https://google.com",
 			expectedCode: http.StatusCreated,
-			expectedBody: "http://example.com/mZmevP23",
+			expectedBody: "http://localhost:8080/mZmevP23",
 		},
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -10,7 +11,32 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	links "github.com/keycubasic/shortener/internal/app"
+	"github.com/keycubasic/shortener/internal/config"
+	"github.com/octago/sflags/gen/gflag"
 )
+
+var cfg = &config.Params{
+	Port:   ":8080",
+	ResURL: "http://localhost:8080/",
+}
+
+func main() {
+	if err := gflag.ParseToDef(cfg); err != nil {
+		log.Fatalln(err)
+	}
+
+	flag.Parse()
+
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Get("/{id}", getHandler)
+	r.Post("/", postHandler)
+	log.Println("Starting server..")
+	if err := http.ListenAndServe(cfg.Port, r); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Server starts on port", cfg.Port)
+}
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -22,6 +48,7 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", link)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
+
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -52,17 +79,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		resBody := "http://" + r.Host + r.URL.Port() + "/" + key
+		resBody := cfg.ResURL + key
 		w.Write([]byte(resBody))
-	}
-}
-
-func main() {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Get("/{id}", getHandler)
-	r.Post("/", postHandler)
-	if err := http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal(err)
 	}
 }
