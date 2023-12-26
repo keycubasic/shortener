@@ -17,7 +17,7 @@ import (
 
 var cfg = &config.Params{
 	A: ":8080",
-	B: "http://localhost:8080/",
+	B: "http://localhost:8080",
 }
 
 func main() {
@@ -79,7 +79,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		resBody := cfg.B + key
+		resBody := cfg.B + "/" + key
 		w.Write([]byte(resBody))
 	}
 }
