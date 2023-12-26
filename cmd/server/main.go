@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -12,30 +11,19 @@ import (
 	"github.com/go-chi/chi/middleware"
 	links "github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/octago/sflags/gen/gflag"
 )
 
-var cfg = &config.Params{
-	A: ":8080",
-	B: "http://localhost:8080",
-}
-
 func main() {
-	if err := gflag.ParseToDef(cfg); err != nil {
-		log.Fatalln(err)
-	}
-
-	flag.Parse()
-
+	config.ParseConfig()
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/{id}", getHandler)
 	r.Post("/", postHandler)
-	log.Println("Starting server..")
-	if err := http.ListenAndServe(cfg.A, r); err != nil {
+	log.Printf("Starting server on port %s with base URL %s", config.Config.A, config.Config.B)
+	if err := http.ListenAndServe(config.Config.A, r); err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Server starts on port", cfg.A)
+	log.Println("Server stops")
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +67,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		resBody := cfg.B + "/" + key
+		resBody := config.Config.B + "/" + key
 		w.Write([]byte(resBody))
 	}
 }

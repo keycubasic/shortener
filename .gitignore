@@ -14,6 +14,7 @@
 # Binaries
 cmd/server/main
 cmd/server/shortener
+cmd/server/server
 
 # Dependency directories (remove the comment below to include it)
 vendor/
