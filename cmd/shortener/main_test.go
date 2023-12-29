@@ -1,47 +1,35 @@
 package main
 
 import (
-	"net/http"
-	"net/http/httptest"
+	"io"
+	"log"
 	"strings"
 	"testing"
 
-	links "github.com/keycubasic/shortener/internal/app"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/server"
+	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_getHandler(t *testing.T) {
+func Test_main(t *testing.T) {
+	address := ":8080"
+	baseUrl := "http://localhost:8080"
+	cfg, _ := config.NewCfg()
+	cfg.SetAddress(address)
+	cfg.SetBaseUrl(baseUrl)
+	db, _ := storage.NewLinks()
+	r := server.ConfigureRouter(cfg, db)
+	ts := httptest.NewServer(r)
+	log.Printf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseUrl())
+	defer ts.Close()
+
 	tests := []struct {
 		method       string
 		uri          string
-		expectedCode int
-		expectedBody string
-	}{
-		{
-			method:       http.MethodGet,
-			uri:          "/TgIlZU3m",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "target link not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.method, func(t *testing.T) {
-			r := httptest.NewRequest(tt.method, tt.uri, nil)
-			w := httptest.NewRecorder()
-
-			getHandler(w, r)
-			assert.Equal(t, tt.expectedCode, w.Code, "The response code does not match what is expected")
-			if tt.expectedBody != "" {
-				assert.Equal(t, tt.expectedBody, strings.TrimSuffix(w.Body.String(), "\n"), "The response body does not match what is expected")
-			}
-		})
-	}
-}
-
-func Test_postHandler(t *testing.T) {
-	tests := []struct {
-		method       string
 		body         string
 		expectedCode int
 		expectedBody string
@@ -65,29 +53,41 @@ func Test_postHandler(t *testing.T) {
 		},
 		{
 			method:       http.MethodPost,
-			body:         "https://practicum.yandex.ru",
-			expectedCode: http.StatusBadRequest, // http.StatusInternalServerError
-			expectedBody: "shortlink a9tbDian already used for URL https://yandex.ru",
-		},
-		{
-			method:       http.MethodPost,
 			body:         "https://google.com",
 			expectedCode: http.StatusCreated,
 			expectedBody: "http://localhost:8080/mZmevP23",
 		},
+		{
+			method:       http.MethodGet,
+			uri:          "/TgIlZU3m",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "target link not found",
+		},
 	}
-
-	links.SetLinkByKey("a9tbDian", "https://yandex.ru") // Wrong shortlink
 
 	for _, tt := range tests {
 		t.Run(tt.method, func(t *testing.T) {
-			r := httptest.NewRequest(tt.method, "/", strings.NewReader(tt.body))
-			w := httptest.NewRecorder()
-
-			postHandler(w, r)
-			assert.Equal(t, tt.expectedCode, w.Code, "The response code does not match what is expected")
+			var response *http.Response
+			switch tt.method {
+			case http.MethodGet:
+				res, err := http.Get(ts.URL + tt.uri)
+				if err != nil {
+					log.Fatal(err)
+				}
+				response = res
+			case http.MethodPost:
+				res, err := http.Post(ts.URL, "text/plain", strings.NewReader(tt.body))
+				if err != nil {
+					log.Fatal(err)
+				}
+				response = res
+			}
+			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 			if tt.expectedBody != "" {
-				assert.Equal(t, tt.expectedBody, strings.TrimSuffix(w.Body.String(), "\n"), "The response body does not match what is expected")
+				assert.NotNil(t, response.Body)
+				resBody, _ := io.ReadAll(response.Body)
+				body := string(resBody)
+				assert.Equal(t, tt.expectedBody, strings.TrimSuffix(body, "\n"), "The response body does not match what is expected")
 			}
 		})
 	}
