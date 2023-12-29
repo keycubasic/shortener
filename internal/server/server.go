@@ -23,7 +23,7 @@ func ConfigureRouter(cfg *config.Cfg, db *storage.Links) http.Handler {
 
 func StartServer(cfg *config.Cfg, db *storage.Links) {
 	r := ConfigureRouter(cfg, db)
-	log.Printf("Server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseUrl())
+	log.Printf("Server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
 	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
 		log.Fatal(err)
 	}

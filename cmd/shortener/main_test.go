@@ -20,11 +20,11 @@ func Test_main(t *testing.T) {
 	baseUrl := "http://localhost:8080"
 	cfg, _ := config.NewCfg()
 	cfg.SetAddress(address)
-	cfg.SetBaseUrl(baseUrl)
+	cfg.SetBaseURL(baseUrl)
 	db, _ := storage.NewLinks()
 	r := server.ConfigureRouter(cfg, db)
 	ts := httptest.NewServer(r)
-	log.Printf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseUrl())
+	log.Printf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
 	defer ts.Close()
 
 	tests := []struct {
@@ -84,6 +84,7 @@ func Test_main(t *testing.T) {
 			}
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 			if tt.expectedBody != "" {
+				defer response.Body.Close()
 				assert.NotNil(t, response.Body)
 				resBody, _ := io.ReadAll(response.Body)
 				body := string(resBody)

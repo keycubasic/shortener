@@ -16,7 +16,7 @@ func CreateShortLink(db *storage.Links, body []byte) (string, error) {
 	// Base64 encode it to 32-character string from the set [a-zA-z0-9+/=]
 	base64encoded := base64.URLEncoding.EncodeToString([]byte(md5checksum[:]))
 	// Remove extra characters
-	re := regexp.MustCompile("[+/=]")
+	re := regexp.MustCompile("[+/=_]")
 	base64encoded = re.ReplaceAllString(base64encoded, "")
 	// Trim up to eight characters from a Base64 set
 	key := base64encoded[:8]

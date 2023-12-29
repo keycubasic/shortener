@@ -54,7 +54,7 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	resBody := h.Cfg.GetBaseUrl() + "/" + key
+	resBody := h.Cfg.GetBaseURL() + "/" + key
 	if _, err := w.Write([]byte(resBody)); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
