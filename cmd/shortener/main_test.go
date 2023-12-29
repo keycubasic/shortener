@@ -74,15 +74,15 @@ func Test_main(t *testing.T) {
 				if err != nil {
 					log.Fatal(err)
 				}
+				defer res.Body.Close()
 				response = res
-				res.Body.Close()
 			case http.MethodPost:
 				res, err := http.Post(ts.URL, "text/plain", strings.NewReader(tt.body))
 				if err != nil {
 					log.Fatal(err)
 				}
-				response = res
-				res.Body.Close()
+				defer res.Body.Close()
+				response = res				
 			}
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 			if tt.expectedBody != "" {
