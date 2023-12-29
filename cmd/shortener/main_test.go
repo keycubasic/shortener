@@ -17,10 +17,10 @@ import (
 
 func Test_main(t *testing.T) {
 	address := ":8080"
-	baseUrl := "http://localhost:8080"
+	baseURL := "http://localhost:8080"
 	cfg, _ := config.NewCfg()
 	cfg.SetAddress(address)
-	cfg.SetBaseURL(baseUrl)
+	cfg.SetBaseURL(baseURL)
 	db, _ := storage.NewLinks()
 	r := server.ConfigureRouter(cfg, db)
 	ts := httptest.NewServer(r)
@@ -75,12 +75,14 @@ func Test_main(t *testing.T) {
 					log.Fatal(err)
 				}
 				response = res
+				res.Body.Close()
 			case http.MethodPost:
 				res, err := http.Post(ts.URL, "text/plain", strings.NewReader(tt.body))
 				if err != nil {
 					log.Fatal(err)
 				}
 				response = res
+				res.Body.Close()
 			}
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 			if tt.expectedBody != "" {
