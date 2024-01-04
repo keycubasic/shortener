@@ -10,9 +10,9 @@ type Cfg struct {
 	baseURL string
 }
 
-func NewCfg() (*Cfg, error) {
+func NewCfg() *Cfg {
 	cfg := new(Cfg)
-	return cfg, nil
+	return cfg
 }
 
 func (c *Cfg) GetAddress() string {

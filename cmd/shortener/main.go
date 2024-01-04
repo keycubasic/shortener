@@ -1,14 +1,14 @@
 package main
 
 import (
+	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/server"
-	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/keycubasic/shortener/internal/handler"
 )
 
 func main() {
-	cfg, _ := config.NewCfg()
+	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	db, _ := storage.NewLinks()
-	server.StartServer(cfg, db)
+	db := app.ConnectStorage()
+	handler.RunServer(cfg, db)
 }

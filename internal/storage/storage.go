@@ -3,24 +3,23 @@ package storage
 import "sync"
 
 type Links struct {
-	sync.Mutex
-	l map[string]string
+	sync.RWMutex
+	links map[string]string
 }
 
-func NewLinks() (*Links, error) {
-	sl := &Links{l: make(map[string]string)}
-	return sl, nil
+func NewLinks() *Links {
+	return &Links{links: make(map[string]string)}
 }
 
-func (sl *Links) GetLink(key string) (string, bool) {
-	defer sl.Unlock()
-	sl.Lock()
-	val, ok := sl.l[key]
+func (ls *Links) GetLink(key string) (string, bool) {
+	ls.RLock()
+	defer ls.RUnlock()
+	val, ok := ls.links[key]
 	return val, ok
 }
 
-func (sl *Links) SetLink(key string, link string) {
-	defer sl.Unlock()
-	sl.Lock()
-	sl.l[key] = link
+func (ls *Links) SetLink(key string, link string) {
+	ls.Lock()
+	defer ls.Unlock()
+	ls.links[key] = link
 }

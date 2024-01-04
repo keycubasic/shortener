@@ -1,30 +1,32 @@
-package main
+package handler
 
 import (
 	"io"
-	"log"
 	"strings"
 	"testing"
 
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/server"
-	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func Test_main(t *testing.T) {
+func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
-	cfg, _ := config.NewCfg()
+	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
-	db, _ := storage.NewLinks()
-	r := server.ConfigureRouter(cfg, db)
+	db := app.ConnectStorage()
+	h := NewURLHandler(cfg, db)
+	r := getRouter()
+	r.Get("/{id}", h.GetOriginalURL)
+	r.Post("/", h.ShortenURL)
 	ts := httptest.NewServer(r)
-	log.Printf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
+	t.Logf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
 	defer ts.Close()
 
 	tests := []struct {
@@ -71,18 +73,14 @@ func Test_main(t *testing.T) {
 			switch tt.method {
 			case http.MethodGet:
 				res, err := http.Get(ts.URL + tt.uri)
-				if err != nil {
-					log.Fatal(err)
-				}
+				require.NoError(t, err)
 				defer res.Body.Close()
 				response = res
 			case http.MethodPost:
 				res, err := http.Post(ts.URL, "text/plain", strings.NewReader(tt.body))
-				if err != nil {
-					log.Fatal(err)
-				}
+				require.NoError(t, err)
 				defer res.Body.Close()
-				response = res				
+				response = res
 			}
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 			if tt.expectedBody != "" {

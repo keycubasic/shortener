@@ -3,12 +3,13 @@ package app
 import (
 	"testing"
 
-	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateShortLink(t *testing.T) {
 	type args struct {
-		body []byte
+		link string
 	}
 	tests := []struct {
 		name    string
@@ -18,24 +19,23 @@ func TestCreateShortLink(t *testing.T) {
 	}{
 		{
 			name:    "TestCreateShortLinkOK",
-			args:    args{[]byte("https://practicum.yandex.ru")},
+			args:    args{"https://practicum.yandex.ru"},
 			want:    "a9tbDian",
 			wantErr: false,
 		},
 	}
 
-	db, _ := storage.NewLinks()
+	db := ConnectStorage()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CreateShortLink(db, tt.args.body)
-			if (err != nil) != tt.wantErr {
+			got, err := CreateShortLink(db, tt.args.link)
+			require.NoError(t, err)
+			if tt.wantErr {
 				t.Errorf("CreateShortLink() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("CreateShortLink() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, got, tt.want, "CreateShortLink() = %v, want %v", got, tt.want)
 		})
 	}
 }
