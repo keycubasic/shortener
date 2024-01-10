@@ -11,8 +11,7 @@ type Cfg struct {
 }
 
 func NewCfg() *Cfg {
-	cfg := new(Cfg)
-	return cfg
+	return new(Cfg)
 }
 
 func (c *Cfg) GetAddress() string {
@@ -35,9 +34,11 @@ func (c *Cfg) ParseCfg() {
 	flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
 	flag.StringVar(&c.baseURL, "b", "http://localhost:8080", "Base address of the resulting shortened URL")
 	flag.Parse()
+
 	if a := os.Getenv("SERVER_ADDRESS"); a != "" {
 		c.address = a
 	}
+
 	if b := os.Getenv("BASE_URL"); b != "" {
 		c.baseURL = b
 	}

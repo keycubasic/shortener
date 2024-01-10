@@ -17,14 +17,13 @@ import (
 func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
+	app := app.NewApp()
+	app.ConnectStorage()
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
-	db := app.ConnectStorage()
-	h := NewURLHandler(cfg, db)
-	r := getRouter()
-	r.Get("/{id}", h.GetOriginalURL)
-	r.Post("/", h.ShortenURL)
+	h := NewURLHandler(app, cfg)
+	r := h.getRouter()
 	ts := httptest.NewServer(r)
 	t.Logf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
 	defer ts.Close()
@@ -82,7 +81,9 @@ func TestServer(t *testing.T) {
 				defer res.Body.Close()
 				response = res
 			}
+
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
+
 			if tt.expectedBody != "" {
 				defer response.Body.Close()
 				assert.NotNil(t, response.Body)

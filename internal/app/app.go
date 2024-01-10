@@ -8,17 +8,25 @@ import (
 	"github.com/keycubasic/shortener/internal/storage"
 )
 
-func ConnectStorage() *storage.Links {
-	return storage.NewLinks()
+type App struct {
+	db *storage.Links
 }
 
-func GetLink(db *storage.Links, id string) (string, bool) {
-	return db.GetLink(id)
+func NewApp() *App {
+	return new(App)
 }
 
-func CreateShortLink(db *storage.Links, link string) (string, error) {
+func (a *App) ConnectStorage() {
+	a.db = storage.NewLinks()
+}
+
+func (a *App) GetLink(id string) (string, bool) {
+	return a.db.GetLink(id)
+}
+
+func (a *App) CreateShortLink(link string) (string, error) {
 	key := genKey(link)
-	db.SetLink(key, link)
+	a.db.SetLink(key, link)
 	return key, nil
 }
 
@@ -34,14 +42,13 @@ func genKey(link string) string {
 	// Trim up to eight characters from a Base64 set
 	key := base64encoded[:8]
 	/*
-	   	Calculation probability of recurrence (P):
-
-	   Pr = 1/An^k = (n−k)!/n!
-	   n = 26 + 26 + 10 = 62 ([a-zA-z0-9])
-	   k = 8 ([:8])
-	   Pr = 7,335363631522695e-15
-	   The probability of recurrence is very very low.
-	   This approach provides a good balance between uniqueness and simplicity.
+		   	Calculation probability of recurrence (Pr):
+			Pr = 1/An^k = (n−k)!/n!
+			n = 26 + 26 + 10 = 62 ([a-zA-z0-9])
+			k = 8 ([:8])
+			Pr = 7,335363631522695e-15
+			The probability of recurrence is very very low.
+			This approach provides a good balance between uniqueness and simplicity.
 	*/
 	return key
 }

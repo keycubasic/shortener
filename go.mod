@@ -1,6 +1,6 @@
 module github.com/keycubasic/shortener
 
-go 1.20
+go 1.21.6
 
 require (
 	github.com/go-chi/chi v1.5.4

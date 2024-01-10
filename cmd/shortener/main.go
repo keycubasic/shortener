@@ -7,8 +7,9 @@ import (
 )
 
 func main() {
+	app := app.NewApp()
+	app.ConnectStorage()
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	db := app.ConnectStorage()
-	handler.RunServer(cfg, db)
+	handler.RunServer(app, cfg)
 }
