@@ -18,7 +18,6 @@ func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
 	app := app.NewApp()
-	app.ConnectStorage()
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)

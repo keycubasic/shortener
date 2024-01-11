@@ -72,7 +72,8 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	resBody := h.cfg.GetBaseURL() + "/" + key
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		return
 	}
 }
 

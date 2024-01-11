@@ -8,16 +8,17 @@ import (
 	"github.com/keycubasic/shortener/internal/storage"
 )
 
+type Storage interface {
+	GetLink(key string) (string, bool)
+	SetLink(key string, link string)
+}
+
 type App struct {
-	db *storage.Links
+	db Storage
 }
 
 func NewApp() *App {
-	return new(App)
-}
-
-func (a *App) ConnectStorage() {
-	a.db = storage.NewLinks()
+	return &App{db: storage.NewLinks()}
 }
 
 func (a *App) GetLink(id string) (string, bool) {

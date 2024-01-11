@@ -8,7 +8,6 @@ import (
 
 func main() {
 	app := app.NewApp()
-	app.ConnectStorage()
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
 	handler.RunServer(app, cfg)
