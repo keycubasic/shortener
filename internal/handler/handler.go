@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	_ "github.com/go-chi/chi/middleware"
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/middleware"
 )
 
 type URLHandler struct {
@@ -44,16 +44,6 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	link := string(body)
-
-	if link == "" {
-		http.Error(w, "body should't be empty", http.StatusBadRequest)
-		return
-	}
-
-	if strings.Contains(link, "\n") {
-		http.Error(w, "body contains too many lines", http.StatusBadRequest)
-		return
-	}
 
 	if _, err := url.ParseRequestURI(link); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

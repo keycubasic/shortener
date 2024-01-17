@@ -10,6 +10,7 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +18,8 @@ import (
 func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
-	app := app.NewApp()
+	storag := storage.NewLinks()
+	app := app.NewApp(storag)
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
@@ -37,13 +39,13 @@ func TestServer(t *testing.T) {
 		{
 			method:       http.MethodPost,
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "body should't be empty",
+			expectedBody: "parse \"\": empty url",
 		},
 		{
 			method:       http.MethodPost,
 			body:         "1\n2",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "body contains too many lines",
+			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
 			method:       http.MethodPost,
@@ -68,6 +70,7 @@ func TestServer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.method, func(t *testing.T) {
 			var response *http.Response
+
 			switch tt.method {
 			case http.MethodGet:
 				res, err := http.Get(ts.URL + tt.uri)

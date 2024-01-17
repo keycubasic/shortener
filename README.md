@@ -31,8 +31,8 @@ git fetch template && git checkout template/main .github
 
 Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
 
-Sync Changes
-```
-git pull --tags origin iterN
-git push origin iterN:iterN
-```
+>## Sync Changes
+>```
+>git pull --tags origin iter
+>git push origin iterN:iterN
+>```
