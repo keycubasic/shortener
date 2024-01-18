@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -8,8 +9,10 @@ import (
 
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi/middleware"
+	"github.com/asaskevich/govalidator"
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
 )
 
@@ -53,7 +56,7 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	key, err := h.app.CreateShortLink(link)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // http.StatusInternalServerError
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -67,11 +70,49 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
+	var req dto.Request
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, err := govalidator.ValidateStruct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	key, err := h.app.CreateShortLink(req.URL)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res := &dto.Response {SortenURL: h.cfg.GetBaseURL() + "/" + key}
+	resBody, err := json.Marshal(res);
+
+	if  err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if _, err := w.Write([]byte(resBody)); err != nil {
+		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		return
+	}
+}
+
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/{id}", h.GetOriginalURL)
 	r.Post("/", h.ShortenURL)
+	r.Post("/api/shorten/", h.ShortenURLJson)
 	return r
 }
 

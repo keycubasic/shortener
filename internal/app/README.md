@@ -1,4 +1,4 @@
-# Shortlink generation
+# Shortlink generator
 
 [URL shortening algorithm](https://byby.dev/url-shortener)
 
@@ -8,17 +8,19 @@
 
 3. Remove extra characters `[+/=_]`;
 
-4. Trim resulting set to eight characters.
+4. Trim resulting set to needed length `[:8]`.
 
-### Calculation probability of recurrence (*Pr*):
+***
 
->$$ P_r = {1 \over A_n^k} = {(n−k)! \over n!} $$
->
->$$ n = 26 + 26 + 10 = 62 $$
->
->$$ k = 8 $$
->
->$$ P_r = 7,335363631522695e-15 $$
+### Calculation probability of recurrence:
 
-### The probability of recurrence is very very low.
+$$ P_r = {1 \over A_n^k} = {(n−k)! \over n!}; $$
+
+$$ n = 26 + 26 + 10 = 62; $$
+
+$$ k = 8; $$
+
+$$ P_r = 7,335363631522695e-15. $$
+
+The calculated probability of recurrence is very very low.
 This approach provides a good balance between uniqueness and simplicity.

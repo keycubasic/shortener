@@ -32,32 +32,85 @@ func TestServer(t *testing.T) {
 	tests := []struct {
 		method       string
 		uri          string
+		contentType  string
 		body         string
 		expectedCode int
 		expectedBody string
 	}{
 		{
 			method:       http.MethodPost,
+			contentType:  "text/plain",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
 		},
 		{
 			method:       http.MethodPost,
+			contentType:  "text/plain",
 			body:         "1\n2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
 			method:       http.MethodPost,
+			contentType:  "text/plain",
 			body:         "1 2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1 2\": invalid URI for request",
 		},
 		{
 			method:       http.MethodPost,
+			contentType:  "text/plain",
 			body:         "https://google.com",
 			expectedCode: http.StatusCreated,
 			expectedBody: "http://localhost:8080/mZmevP23",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "https://google.com",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "invalid character 'h' looking for beginning of value",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "{url:}",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "invalid character 'u' looking for beginning of object key string",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "{\"url\":\"\"}",
+			expectedCode: http.StatusCreated,
+			expectedBody: "{\"result\":\"http://localhost:8080/1B2M2Y8A\"}",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "{\"url\":\"1\n2\"}",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "invalid character '\\n' in string literal",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "{\"url\":\"1 2\"}",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "url: 1 2 does not validate as url",
+		},
+		{
+			method:       http.MethodPost,
+			contentType:  "application/json",
+			uri:          "/api/shorten/",
+			body:         "{\"url\":\"https://google.com\"}",
+			expectedCode: http.StatusCreated,
+			expectedBody: "{\"result\":\"http://localhost:8080/mZmevP23\"}",
 		},
 		{
 			method:       http.MethodGet,
@@ -78,7 +131,7 @@ func TestServer(t *testing.T) {
 				defer res.Body.Close()
 				response = res
 			case http.MethodPost:
-				res, err := http.Post(ts.URL, "text/plain", strings.NewReader(tt.body))
+				res, err := http.Post(ts.URL+tt.uri, tt.contentType, strings.NewReader(tt.body))
 				require.NoError(t, err)
 				defer res.Body.Close()
 				response = res
