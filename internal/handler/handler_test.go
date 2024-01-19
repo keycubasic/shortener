@@ -30,6 +30,7 @@ func TestServer(t *testing.T) {
 	defer ts.Close()
 
 	tests := []struct {
+		name         string
 		method       string
 		uri          string
 		contentType  string
@@ -38,12 +39,14 @@ func TestServer(t *testing.T) {
 		expectedBody string
 	}{
 		{
+			name:         "TestHandler1",
 			method:       http.MethodPost,
 			contentType:  "text/plain",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
 		},
 		{
+			name:         "TestHandler2",
 			method:       http.MethodPost,
 			contentType:  "text/plain",
 			body:         "1\n2",
@@ -51,6 +54,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
+			name:         "TestHandler3",
 			method:       http.MethodPost,
 			contentType:  "text/plain",
 			body:         "1 2",
@@ -58,6 +62,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "parse \"1 2\": invalid URI for request",
 		},
 		{
+			name:         "TestHandler4",
 			method:       http.MethodPost,
 			contentType:  "text/plain",
 			body:         "https://google.com",
@@ -65,6 +70,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "http://localhost:8080/mZmevP23",
 		},
 		{
+			name:         "TestHandler5",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
@@ -73,6 +79,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "invalid character 'h' looking for beginning of value",
 		},
 		{
+			name:         "TestHandler6",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
@@ -81,14 +88,16 @@ func TestServer(t *testing.T) {
 			expectedBody: "invalid character 'u' looking for beginning of object key string",
 		},
 		{
+			name:         "TestHandler7",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
 			body:         "{\"url\":\"\"}",
-			expectedCode: http.StatusCreated,
-			expectedBody: "{\"result\":\"http://localhost:8080/1B2M2Y8A\"}",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: "parse \"\": empty url",
 		},
 		{
+			name:         "TestHandler8",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
@@ -97,6 +106,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "invalid character '\\n' in string literal",
 		},
 		{
+			name:         "TestHandler9",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
@@ -105,6 +115,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "url: 1 2 does not validate as url",
 		},
 		{
+			name:         "TestHandler10",
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten/",
@@ -113,6 +124,7 @@ func TestServer(t *testing.T) {
 			expectedBody: "{\"result\":\"http://localhost:8080/mZmevP23\"}",
 		},
 		{
+			name:         "TestHandler11",
 			method:       http.MethodGet,
 			uri:          "/TgIlZU3m",
 			expectedCode: http.StatusBadRequest,
@@ -121,7 +133,7 @@ func TestServer(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.method, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			var response *http.Response
 
 			switch tt.method {
