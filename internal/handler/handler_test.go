@@ -18,8 +18,8 @@ import (
 func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
-	storag := storage.NewLinks()
-	app := app.NewApp(storag)
+	db := storage.NewLinks()
+	app := app.NewApp(db)
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
@@ -119,12 +119,18 @@ func TestServer(t *testing.T) {
 			method:       http.MethodPost,
 			contentType:  "application/json",
 			uri:          "/api/shorten",
-			body:         "{\"url\":\"https://google.com\"}",
+			body:         "{\"url\":\"https://ya.ru\"}",
 			expectedCode: http.StatusCreated,
-			expectedBody: "{\"result\":\"http://localhost:8080/mZmevP23\"}",
+			expectedBody: "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
 			name:         "TestHandler11",
+			method:       http.MethodGet,
+			uri:          "/6YGS4ZUF",
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "TestHandler12",
 			method:       http.MethodGet,
 			uri:          "/TgIlZU3m",
 			expectedCode: http.StatusBadRequest,

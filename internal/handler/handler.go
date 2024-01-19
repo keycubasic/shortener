@@ -70,7 +70,7 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 	req := dto.NewRequest()
-	
+
 	if err := req.Unmarshal(r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -89,7 +89,6 @@ func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
-
 	resBody, err := res.Marshal()
 
 	if err != nil {

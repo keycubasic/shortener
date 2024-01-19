@@ -42,6 +42,5 @@ func NewResponse(shorten string) *Response {
 }
 
 func (res *Response) Marshal() ([]byte, error) {
-	r, err := json.Marshal(res)
-	return r, err
+	return json.Marshal(res)
 }

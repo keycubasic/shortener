@@ -34,10 +34,10 @@ func Logger(next http.Handler) http.Handler {
 		}
 		defer func() {
 			log.WithFields(log.Fields{
-				"Remote": r.RemoteAddr,
-				"Status": record.status,
-				"Size":   record.size,
-				"Time":   time.Since(t1),
+				"remote": r.RemoteAddr,
+				"status": record.status,
+				"size":   record.size,
+				"time":   time.Since(t1),
 			}).Infof("%s %s%s %s", r.Method, r.Host, r.RequestURI, r.Proto)
 		}()
 		next.ServeHTTP(record, r)
