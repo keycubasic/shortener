@@ -155,7 +155,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r.Use(middleware.Logger)
 	r.Get("/{id}", h.GetOriginalURL)
 	r.Post("/", h.ShortenURL)
-	r.Post("/api/shorten/", h.ShortenURLJson)
+	r.Post("/api/shorten", h.ShortenURLJson)
 	return r
 }
 
