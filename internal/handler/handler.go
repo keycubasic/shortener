@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi/middleware"
 	"github.com/keycubasic/shortener/internal/app"
@@ -71,19 +69,14 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
-	var req dto.Request
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req := dto.NewRequest()
+	
+	if err := req.Unmarshal(r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if ok, err := govalidator.ValidateStruct(req); !ok {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if _, err := url.ParseRequestURI(req.URL); err != nil {
+	if ok, err := req.ValidateRequest(); !ok {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -95,9 +88,9 @@ func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := &dto.Response{SortenURL: h.cfg.GetBaseURL() + "/" + key}
+	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
 
-	resBody, err := json.Marshal(res)
+	resBody, err := res.Marshal()
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
