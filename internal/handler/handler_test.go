@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"compress/gzip"
 	"io"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ func TestServer(t *testing.T) {
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
-	h := NewURLHandler(app, cfg)
+	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
 	t.Logf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
@@ -144,12 +145,24 @@ func TestServer(t *testing.T) {
 
 			switch tt.method {
 			case http.MethodGet:
-				res, err := http.Get(ts.URL + tt.uri)
+				// res, err := http.Get(ts.URL + tt.uri)
+				r := httptest.NewRequest("GET", ts.URL+tt.uri, nil)
+				r.RequestURI = ""
+				r.Header.Set("Accept-Encoding", "gzip")
+
+				res, err := http.DefaultClient.Do(r)
 				require.NoError(t, err)
 				defer res.Body.Close()
 				response = res
+
 			case http.MethodPost:
-				res, err := http.Post(ts.URL+tt.uri, tt.contentType, strings.NewReader(tt.body))
+				// res, err := http.Post(ts.URL + tt.uri, tt.contentType, strings.NewReader(tt.body))
+				r := httptest.NewRequest("POST", ts.URL+tt.uri, strings.NewReader(tt.body))
+				r.RequestURI = ""
+				r.Header.Set("Content-Type", tt.contentType)
+				r.Header.Set("Accept-Encoding", "gzip")
+
+				res, err := http.DefaultClient.Do(r)
 				require.NoError(t, err)
 				defer res.Body.Close()
 				response = res
@@ -159,9 +172,24 @@ func TestServer(t *testing.T) {
 
 			if tt.expectedBody != "" {
 				defer response.Body.Close()
+
+				if response.StatusCode < 300 {
+					assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
+				}
+
 				assert.NotNil(t, response.Body)
-				resBody, _ := io.ReadAll(response.Body)
+				// resBody, err := io.ReadAll(response.Body)
+
+				zr, err := gzip.NewReader(response.Body)
+				require.NoError(t, err)
+
+				resBody, err := io.ReadAll(zr)
+				require.NoError(t, err)
+
 				body := string(resBody)
+				if tt.contentType == "application/json" && response.StatusCode < 300 {
+					require.JSONEq(t, tt.expectedBody, body)
+				}
 				assert.Equal(t, tt.expectedBody, strings.TrimSuffix(body, "\n"), "The response body does not match what is expected")
 			}
 		})

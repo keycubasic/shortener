@@ -19,7 +19,7 @@ type URLHandler struct {
 	cfg *config.Cfg
 }
 
-func NewURLHandler(app *app.App, cfg *config.Cfg) *URLHandler {
+func newURLHandler(app *app.App, cfg *config.Cfg) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
 }
 
@@ -108,6 +108,7 @@ func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(middleware.Gzip)
 	r.Get("/{id}", h.GetOriginalURL)
 	r.Post("/", h.ShortenURL)
 	r.Post("/api/shorten", h.ShortenURLJson)
@@ -115,7 +116,7 @@ func (h *URLHandler) getRouter() chi.Router {
 }
 
 func RunServer(app *app.App, cfg *config.Cfg) {
-	h := NewURLHandler(app, cfg)
+	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	log.Printf("Server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
 
