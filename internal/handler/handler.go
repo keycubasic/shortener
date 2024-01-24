@@ -38,6 +38,25 @@ func (h *URLHandler) initProducer() error {
 	return nil
 }
 
+func (h *URLHandler) closeProducer() error {
+	if h.producer != nil {
+		if err := h.producer.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (h *URLHandler) saveToFile(key, link string) error {
+	if h.producer != nil {
+		id := h.app.Count() + 1
+		if err := h.producer.Save(id, key, link); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, ok := h.app.GetLink(id)
@@ -73,9 +92,8 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.producer != nil {
-		id := h.app.Count() + 1
-		h.producer.Save(id, key, link)
+	if err := h.saveToFile(key, link); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	w.Header().Add("Content-Type", "text/plain")
@@ -108,9 +126,8 @@ func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.producer != nil {
-		id := h.app.Count() + 1
-		h.producer.Save(id, key, req.URL)
+	if err := h.saveToFile(key, req.URL); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
@@ -146,7 +163,8 @@ func RunServer(app *app.App, cfg *config.Cfg) {
 	if err := h.initProducer(); err != nil {
 		log.Fatal(err)
 	}
-	defer h.producer.Close()
+
+	defer h.closeProducer()
 
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s and disk store support at %s", cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
