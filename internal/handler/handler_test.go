@@ -19,11 +19,11 @@ import (
 func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
-	db := storage.NewLinks()
-	app := app.NewApp(db)
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
+	db := storage.NewLinks()
+	app := app.NewApp(db)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
@@ -152,6 +152,7 @@ func TestServer(t *testing.T) {
 
 				res, err := http.DefaultClient.Do(r)
 				require.NoError(t, err)
+
 				defer res.Body.Close()
 				response = res
 
@@ -164,6 +165,7 @@ func TestServer(t *testing.T) {
 
 				res, err := http.DefaultClient.Do(r)
 				require.NoError(t, err)
+
 				defer res.Body.Close()
 				response = res
 			}
@@ -171,15 +173,15 @@ func TestServer(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 
 			if tt.expectedBody != "" {
-				defer response.Body.Close()
 
 				if response.StatusCode < 300 {
 					assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
 				}
 
+				defer response.Body.Close()
 				assert.NotNil(t, response.Body)
-				// resBody, err := io.ReadAll(response.Body)
 
+				// resBody, err := io.ReadAll(response.Body)
 				zr, err := gzip.NewReader(response.Body)
 				require.NoError(t, err)
 

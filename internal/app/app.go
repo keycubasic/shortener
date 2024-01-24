@@ -9,6 +9,7 @@ import (
 type database interface {
 	GetLink(key string) (string, bool)
 	SetLink(key string, link string)
+	Count() int
 }
 
 type App struct {
@@ -21,6 +22,10 @@ func NewApp(db database) *App {
 
 func (a *App) GetLink(id string) (string, bool) {
 	return a.db.GetLink(id)
+}
+
+func (a *App) Count() int {
+	return a.db.Count()
 }
 
 func (a *App) CreateShortLink(link string) (string, error) {

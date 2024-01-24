@@ -8,9 +8,10 @@ import (
 )
 
 func main() {
-	db := storage.NewLinks()
-	app := app.NewApp(db)
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
+	db := storage.NewLinks()
+	db.Load(cfg)
+	app := app.NewApp(db)
 	handler.RunServer(app, cfg)
 }

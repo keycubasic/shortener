@@ -34,9 +34,7 @@ func (r *logRecord) WriteHeader(status int) {
 
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		t1 := time.Now()
-
+		t := time.Now()
 		rec := newLogRecord(w)
 
 		defer func() {
@@ -44,7 +42,7 @@ func Logger(next http.Handler) http.Handler {
 				"remote": r.RemoteAddr,
 				"status": rec.status,
 				"size":   rec.size,
-				"time":   time.Since(t1),
+				"time":   time.Since(t),
 			}).Infof("%s %s%s %s", r.Method, r.Host, r.RequestURI, r.Proto)
 		}()
 

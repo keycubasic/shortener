@@ -2,7 +2,6 @@ package handler
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -11,16 +10,32 @@ import (
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dto"
+	"github.com/keycubasic/shortener/internal/loader"
 	"github.com/keycubasic/shortener/internal/middleware"
+	log "github.com/sirupsen/logrus"
 )
 
 type URLHandler struct {
-	app *app.App
-	cfg *config.Cfg
+	app      *app.App
+	cfg      *config.Cfg
+	producer *loader.Producer
 }
 
 func newURLHandler(app *app.App, cfg *config.Cfg) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
+}
+
+func (h *URLHandler) initProducer() error {
+
+	if h.cfg.GetFilePath() != "" {
+		var err error
+
+		if h.producer, err = loader.NewProducer(h.cfg.GetFilePath()); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +103,11 @@ func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.producer != nil {
+		id := h.app.Count() + 1
+		h.producer.Save(id, key, req.URL)
+	}
+
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
 	resBody, err := res.Marshal()
 
@@ -117,8 +137,13 @@ func (h *URLHandler) getRouter() chi.Router {
 
 func RunServer(app *app.App, cfg *config.Cfg) {
 	h := newURLHandler(app, cfg)
+
+	if err := h.initProducer(); err != nil {
+		log.Fatal(err)
+	}
+
 	r := h.getRouter()
-	log.Printf("Server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
+	log.Infof("Server listening address %s with base URL %s and disk store support at %s", cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
 
 	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
 		log.Fatal(err)
