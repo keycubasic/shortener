@@ -146,6 +146,7 @@ func RunServer(app *app.App, cfg *config.Cfg) {
 	if err := h.initProducer(); err != nil {
 		log.Fatal(err)
 	}
+	defer h.producer.Close()
 
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s and disk store support at %s", cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
