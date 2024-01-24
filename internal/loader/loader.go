@@ -32,7 +32,7 @@ func NewProducer(fname string) (*Producer, error) {
 
 func (p *Producer) Save(id int, key, link string) error {
 	linkDao := dao.NewLinkDao()
-	linkDao.Uuid = id
+	linkDao.UUID = id
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
 

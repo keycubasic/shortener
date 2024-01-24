@@ -5,7 +5,7 @@ import (
 )
 
 type LinkDao struct {
-	Uuid        int    `json:"uuid"`
+	UUID        int    `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }

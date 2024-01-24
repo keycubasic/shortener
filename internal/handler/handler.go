@@ -73,6 +73,11 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.producer != nil {
+		id := h.app.Count() + 1
+		h.producer.Save(id, key, link)
+	}
+
 	w.Header().Add("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	resBody := h.cfg.GetBaseURL() + "/" + key
