@@ -25,7 +25,6 @@ func (req *Request) Unmarshal(r io.Reader) error {
 }
 
 func (req *Request) ValidateRequest() (bool, error) {
-
 	if ok, err := govalidator.ValidateStruct(req); !ok {
 		return ok, err
 	}

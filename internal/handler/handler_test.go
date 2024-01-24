@@ -173,7 +173,6 @@ func TestServer(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 
 			if tt.expectedBody != "" {
-
 				if response.StatusCode < 300 {
 					assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
 				}
@@ -189,9 +188,11 @@ func TestServer(t *testing.T) {
 				require.NoError(t, err)
 
 				body := string(resBody)
+
 				if tt.contentType == "application/json" && response.StatusCode < 300 {
 					require.JSONEq(t, tt.expectedBody, body)
 				}
+
 				assert.Equal(t, tt.expectedBody, strings.TrimSuffix(body, "\n"), "The response body does not match what is expected")
 			}
 		})

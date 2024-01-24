@@ -64,6 +64,7 @@ type Consumer struct {
 
 func NewConsumer(fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
+
 	if err != nil {
 		return nil, err
 	}

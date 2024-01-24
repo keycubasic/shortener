@@ -12,6 +12,7 @@ func TestCreateShortLink(t *testing.T) {
 	type args struct {
 		link string
 	}
+
 	tests := []struct {
 		name    string
 		args    args

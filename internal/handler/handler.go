@@ -55,6 +55,7 @@ func (h *URLHandler) closeProducer() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -66,10 +67,11 @@ func (h *URLHandler) saveToFile(key, link string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
-func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, ok := h.app.GetLink(id)
 
@@ -82,7 +84,7 @@ func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -118,7 +120,7 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *URLHandler) ShortenURLJson(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) shortenURLJson(w http.ResponseWriter, r *http.Request) {
 	req := dto.NewRequest()
 
 	if err := req.Unmarshal(r.Body); err != nil {
@@ -163,9 +165,9 @@ func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Gzip)
-	r.Get("/{id}", h.GetOriginalURL)
-	r.Post("/", h.ShortenURL)
-	r.Post("/api/shorten", h.ShortenURLJson)
+	r.Get("/{id}", h.getOriginalURL)
+	r.Post("/", h.shortenURL)
+	r.Post("/api/shorten", h.shortenURLJson)
 	return r
 }
 

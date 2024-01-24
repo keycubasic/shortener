@@ -31,6 +31,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
 		c.Header().Set("Content-Encoding", "gzip")
 	}
+
 	c.ResponseWriter.WriteHeader(statusCode)
 }
 
@@ -61,7 +62,6 @@ func (c *compressReader) Read(p []byte) (n int, err error) {
 }
 
 func (c *compressReader) Close() error {
-
 	if err := c.ReadCloser.Close(); err != nil {
 		return err
 	}
