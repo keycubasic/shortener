@@ -3,10 +3,13 @@ package storage
 import (
 	"sync"
 
-	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/loader"
 	log "github.com/sirupsen/logrus"
 )
+
+type configuration interface {
+	GetFilePath() string
+}
 
 type Links struct {
 	sync.RWMutex
@@ -34,7 +37,7 @@ func (ls *Links) Count() int {
 	return len(ls.links)
 }
 
-func (ls *Links) Load(cfg *config.Cfg) {
+func (ls *Links) Load(cfg configuration) {
 	if cfg.GetFilePath() != "" {
 		consumer, err := loader.NewConsumer(cfg.GetFilePath())
 

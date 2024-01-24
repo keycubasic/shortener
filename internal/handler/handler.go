@@ -7,26 +7,37 @@ import (
 
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi/middleware"
-	"github.com/keycubasic/shortener/internal/app"
-	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/loader"
 	"github.com/keycubasic/shortener/internal/middleware"
 	log "github.com/sirupsen/logrus"
 )
 
+type application interface {
+	GetLink(key string) (string, bool)
+	Count() int
+	CreateShortLink(link string) (string, error)
+}
+
+type configuration interface {
+	GetAddress() string
+	SetAddress(address string)
+	GetBaseURL() string
+	SetBaseURL(baseURL string)
+	GetFilePath() string
+}
+
 type URLHandler struct {
-	app      *app.App
-	cfg      *config.Cfg
+	app      application
+	cfg      configuration
 	producer *loader.Producer
 }
 
-func newURLHandler(app *app.App, cfg *config.Cfg) *URLHandler {
+func newURLHandler(app application, cfg configuration) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
 }
 
 func (h *URLHandler) initProducer() error {
-
 	if h.cfg.GetFilePath() != "" {
 		var err error
 
@@ -50,6 +61,7 @@ func (h *URLHandler) closeProducer() error {
 func (h *URLHandler) saveToFile(key, link string) error {
 	if h.producer != nil {
 		id := h.app.Count() + 1
+
 		if err := h.producer.Save(id, key, link); err != nil {
 			return err
 		}
@@ -157,7 +169,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
-func RunServer(app *app.App, cfg *config.Cfg) {
+func RunServer(app application, cfg configuration) {
 	h := newURLHandler(app, cfg)
 
 	if err := h.initProducer(); err != nil {
