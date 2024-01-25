@@ -19,6 +19,7 @@ import (
 func TestServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
+	apiShortenURI := "/api/shorten"
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
@@ -42,14 +43,14 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler1",
 			method:       http.MethodPost,
-			contentType:  "text/plain",
+			contentType:  ContentTypeText,
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
 		},
 		{
 			name:         "TestHandler2",
 			method:       http.MethodPost,
-			contentType:  "text/plain",
+			contentType:  ContentTypeText,
 			body:         "1\n2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
@@ -57,7 +58,7 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler3",
 			method:       http.MethodPost,
-			contentType:  "text/plain",
+			contentType:  ContentTypeText,
 			body:         "1 2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1 2\": invalid URI for request",
@@ -65,7 +66,7 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler4",
 			method:       http.MethodPost,
-			contentType:  "text/plain",
+			contentType:  ContentTypeText,
 			body:         "https://google.com",
 			expectedCode: http.StatusCreated,
 			expectedBody: "http://localhost:8080/mZmevP23",
@@ -73,8 +74,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler5",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "https://google.com",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "invalid character 'h' looking for beginning of value",
@@ -82,8 +83,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler6",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "{url:}",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "invalid character 'u' looking for beginning of object key string",
@@ -91,8 +92,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler7",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "{\"url\":\"\"}",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
@@ -100,8 +101,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler8",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "{\"url\":\"1\n2\"}",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "invalid character '\\n' in string literal",
@@ -109,8 +110,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler9",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "{\"url\":\"1 2\"}",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "url: 1 2 does not validate as url",
@@ -118,8 +119,8 @@ func TestServer(t *testing.T) {
 		{
 			name:         "TestHandler10",
 			method:       http.MethodPost,
-			contentType:  "application/json",
-			uri:          "/api/shorten",
+			contentType:  ContentTypeJSON,
+			uri:          apiShortenURI,
 			body:         "{\"url\":\"https://ya.ru\"}",
 			expectedCode: http.StatusCreated,
 			expectedBody: "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
@@ -189,7 +190,7 @@ func TestServer(t *testing.T) {
 
 				body := string(resBody)
 
-				if tt.contentType == "application/json" && response.StatusCode < 300 {
+				if tt.contentType == ContentTypeJSON && response.StatusCode < 300 {
 					require.JSONEq(t, tt.expectedBody, body)
 				}
 

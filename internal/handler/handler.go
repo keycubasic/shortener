@@ -13,6 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	ContentTypeJSON = "application/json"
+	ContentTypeText = "text/plain; charset=utf-8"
+)
+
 type application interface {
 	GetLink(key string) (string, bool)
 	Count() int
@@ -110,7 +115,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	w.Header().Add("Content-Type", "text/plain")
+	w.Header().Add("Content-Type", ContentTypeText)
 	w.WriteHeader(http.StatusCreated)
 	resBody := h.cfg.GetBaseURL() + "/" + key
 
@@ -152,7 +157,7 @@ func (h *URLHandler) shortenURLJson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Content-Type", ContentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
@@ -181,7 +186,8 @@ func RunServer(app application, cfg configuration) {
 	defer h.closeProducer()
 
 	r := h.getRouter()
-	log.Infof("Server listening address %s with base URL %s and disk store support at %s", cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
+	log.Infof("Server listening address %s with base URL %s and disk store support at %s",
+		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
 
 	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
 		log.Fatal(err)

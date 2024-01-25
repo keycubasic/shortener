@@ -22,5 +22,8 @@ vendor/
 .idea
 .vscode
 
+# Sonar scanner
+.scannerwork
+
 # Internal
 tmp/
