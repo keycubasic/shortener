@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/keycubasic/shortener/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +27,8 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	db := storage.NewLinks()
-	app := NewApp(db)
+	cfg := config.NewCfg()
+	app := NewApp(cfg)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

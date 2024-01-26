@@ -11,20 +11,18 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestServer(t *testing.T) {
+func TestRunServer(t *testing.T) {
 	address := ":8080"
 	baseURL := "http://localhost:8080"
 	apiShortenURI := "/api/shorten"
 	cfg := config.NewCfg()
 	cfg.SetAddress(address)
 	cfg.SetBaseURL(baseURL)
-	db := storage.NewLinks()
-	app := app.NewApp(db)
+	app := app.NewApp(cfg)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
