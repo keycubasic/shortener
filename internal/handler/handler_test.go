@@ -16,17 +16,15 @@ import (
 )
 
 func TestRunServer(t *testing.T) {
-	address := ":8080"
-	baseURL := "http://localhost:8080"
 	apiShortenURI := "/api/shorten"
 	cfg := config.NewCfg()
-	cfg.SetAddress(address)
-	cfg.SetBaseURL(baseURL)
+	cfg.ParseCfg()
 	app := app.NewApp(cfg)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
-	t.Logf("Test server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
+	t.Logf("Test server listening address %s with base URL %s and disk store support at %s",
+		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
 	defer ts.Close()
 
 	tests := []struct {

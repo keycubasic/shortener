@@ -26,9 +26,7 @@ type application interface {
 
 type configuration interface {
 	GetAddress() string
-	SetAddress(address string)
 	GetBaseURL() string
-	SetBaseURL(baseURL string)
 	GetFilePath() string
 }
 
