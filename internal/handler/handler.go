@@ -1,26 +1,24 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/go-chi/chi"
-	_ "github.com/go-chi/chi/middleware"
 	"github.com/keycubasic/shortener/internal/dto"
-	"github.com/keycubasic/shortener/internal/loader"
 	"github.com/keycubasic/shortener/internal/middleware"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
-	ContentTypeJSON = "application/json"
-	ContentTypeText = "text/plain; charset=utf-8"
+	contentTypeJSON = "application/json"
+	contentTypeText = "text/plain; charset=utf-8"
 )
 
 type application interface {
 	GetLink(key string) (string, bool)
-	Count() int
 	CreateShortLink(link string) (string, error)
 }
 
@@ -31,47 +29,12 @@ type configuration interface {
 }
 
 type URLHandler struct {
-	app      application
-	cfg      configuration
-	producer *loader.Producer
+	app application
+	cfg configuration
 }
 
 func newURLHandler(app application, cfg configuration) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
-}
-
-func (h *URLHandler) initProducer() error {
-	if h.cfg.GetFilePath() != "" {
-		var err error
-
-		if h.producer, err = loader.NewProducer(h.cfg.GetFilePath()); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (h *URLHandler) closeProducer() error {
-	if h.producer != nil {
-		if err := h.producer.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (h *URLHandler) saveToFile(key, link string) error {
-	if h.producer != nil {
-		id := h.app.Count() + 1
-
-		if err := h.producer.Save(id, key, link); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -109,11 +72,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.saveToFile(key, link); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	w.Header().Add("Content-Type", ContentTypeText)
+	w.Header().Add("Content-Type", contentTypeText)
 	w.WriteHeader(http.StatusCreated)
 	resBody := h.cfg.GetBaseURL() + "/" + key
 
@@ -126,12 +85,12 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) shortenURLJson(w http.ResponseWriter, r *http.Request) {
 	req := dto.NewRequest()
 
-	if err := req.Unmarshal(r.Body); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if ok, err := req.ValidateRequest(); !ok {
+	if _, err := url.ParseRequestURI(req.URL); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -143,19 +102,15 @@ func (h *URLHandler) shortenURLJson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.saveToFile(key, req.URL); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
-	resBody, err := res.Marshal()
+	resBody, err := json.Marshal(res)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Add("Content-Type", ContentTypeJSON)
+	w.Header().Add("Content-Type", contentTypeJSON)
 	w.WriteHeader(http.StatusCreated)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
@@ -176,13 +131,6 @@ func (h *URLHandler) getRouter() chi.Router {
 
 func RunServer(app application, cfg configuration) {
 	h := newURLHandler(app, cfg)
-
-	if err := h.initProducer(); err != nil {
-		log.Fatal(err)
-	}
-
-	defer h.closeProducer()
-
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s and disk store support at %s",
 		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())

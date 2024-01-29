@@ -4,30 +4,23 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"regexp"
-
-	"github.com/keycubasic/shortener/internal/storage"
 )
 
-type configuration interface {
-	GetFilePath() string
+type database interface {
+	GetLink(key string) (string, bool)
+	SetLink(key string, link string) error
 }
 
 type App struct {
-	db *storage.Links
+	db database
 }
 
-func NewApp(cfg configuration) *App {
-	db := storage.NewLinks()
-	db.Load(cfg)
+func NewApp(db database) *App {
 	return &App{db: db}
 }
 
 func (a *App) GetLink(id string) (string, bool) {
 	return a.db.GetLink(id)
-}
-
-func (a *App) Count() int {
-	return a.db.Count()
 }
 
 func (a *App) CreateShortLink(link string) (string, error) {

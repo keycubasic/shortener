@@ -2,6 +2,8 @@ package loader
 
 import (
 	"bufio"
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/keycubasic/shortener/internal/dao"
@@ -9,7 +11,7 @@ import (
 
 type database interface {
 	GetLink(key string) (string, bool)
-	SetLink(key string, link string)
+	SetLink(key string, link string) error
 }
 
 type Producer struct {
@@ -21,7 +23,7 @@ func NewProducer(fname string) (*Producer, error) {
 	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("producer failed to open file: %w", err)
 	}
 
 	return &Producer{
@@ -36,18 +38,18 @@ func (p *Producer) Save(id int, key, link string) error {
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
 
-	data, err := linkDao.Marshal()
+	data, err := json.Marshal(linkDao)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("producer failed to marshal dao: %w", err)
 	}
 
 	if _, err := p.writer.Write(data); err != nil {
-		return err
+		return fmt.Errorf("producer failed to write data: %w", err)
 	}
 
 	if err := p.writer.WriteByte('\n'); err != nil {
-		return err
+		return fmt.Errorf("producer failed to write a line break: %w", err)
 	}
 
 	return p.writer.Flush()
@@ -66,7 +68,7 @@ func NewConsumer(fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("сonsumer failed to open file: %w", err)
 	}
 
 	return &Consumer{
@@ -78,13 +80,15 @@ func NewConsumer(fname string) (*Consumer, error) {
 func (c *Consumer) Load(db database) error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
-		err := linkDao.Unmarshal([]byte(c.scanner.Text()))
+		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("сonsumer failed to unmarshal dao: %w", err)
 		}
 
-		db.SetLink(linkDao.ShortURL, linkDao.OriginalURL)
+		if err := db.SetLink(linkDao.ShortURL, linkDao.OriginalURL); err != nil {
+			return fmt.Errorf("сonsumer failed to load from storage: %w", err)
+		}
 	}
 	return nil
 }

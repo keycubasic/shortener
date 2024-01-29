@@ -3,7 +3,6 @@ module github.com/keycubasic/shortener
 go 1.21
 
 require (
-	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef
 	github.com/go-chi/chi v1.5.4
 	github.com/stretchr/testify v1.8.4
 )

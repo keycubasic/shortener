@@ -11,6 +11,7 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,11 @@ func TestRunServer(t *testing.T) {
 	apiShortenURI := "/api/shorten"
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	app := app.NewApp(cfg)
+	db, err := storage.NewLinks(cfg)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	app := app.NewApp(db)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
@@ -39,14 +44,14 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler1",
 			method:       http.MethodPost,
-			contentType:  ContentTypeText,
+			contentType:  contentTypeText,
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
 		},
 		{
 			name:         "TestHandler2",
 			method:       http.MethodPost,
-			contentType:  ContentTypeText,
+			contentType:  contentTypeText,
 			body:         "1\n2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
@@ -54,7 +59,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler3",
 			method:       http.MethodPost,
-			contentType:  ContentTypeText,
+			contentType:  contentTypeText,
 			body:         "1 2",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"1 2\": invalid URI for request",
@@ -62,7 +67,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler4",
 			method:       http.MethodPost,
-			contentType:  ContentTypeText,
+			contentType:  contentTypeText,
 			body:         "https://google.com",
 			expectedCode: http.StatusCreated,
 			expectedBody: "http://localhost:8080/mZmevP23",
@@ -70,7 +75,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler5",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "https://google.com",
 			expectedCode: http.StatusBadRequest,
@@ -79,7 +84,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler6",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "{url:}",
 			expectedCode: http.StatusBadRequest,
@@ -88,7 +93,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler7",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "{\"url\":\"\"}",
 			expectedCode: http.StatusBadRequest,
@@ -97,7 +102,7 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler8",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "{\"url\":\"1\n2\"}",
 			expectedCode: http.StatusBadRequest,
@@ -106,16 +111,16 @@ func TestRunServer(t *testing.T) {
 		{
 			name:         "TestHandler9",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "{\"url\":\"1 2\"}",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "url: 1 2 does not validate as url",
+			expectedBody: "parse \"1 2\": invalid URI for request",
 		},
 		{
 			name:         "TestHandler10",
 			method:       http.MethodPost,
-			contentType:  ContentTypeJSON,
+			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
 			body:         "{\"url\":\"https://ya.ru\"}",
 			expectedCode: http.StatusCreated,
@@ -186,7 +191,7 @@ func TestRunServer(t *testing.T) {
 
 				body := string(resBody)
 
-				if tt.contentType == ContentTypeJSON && response.StatusCode < 300 {
+				if tt.contentType == contentTypeJSON && response.StatusCode < 300 {
 					require.JSONEq(t, tt.expectedBody, body)
 				}
 
