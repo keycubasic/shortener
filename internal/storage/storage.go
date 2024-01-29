@@ -40,7 +40,7 @@ func NewLinks(cfg configuration) (*Links, error) {
 
 		// Init producer
 		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
-			return nil, fmt.Errorf("storage failed to create produser: %w", err)
+			return nil, fmt.Errorf("storage failed to create producer: %w", err)
 		}
 	}
 

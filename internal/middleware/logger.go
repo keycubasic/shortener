@@ -16,7 +16,7 @@ type logRecord struct {
 func newLogRecord(w http.ResponseWriter) *logRecord {
 	return &logRecord{
 		ResponseWriter: w,
-		status:         0,
+		status:         200,
 		size:           0,
 	}
 }
