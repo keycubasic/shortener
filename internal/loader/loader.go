@@ -2,10 +2,10 @@ package loader
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/dao"
 )
 
@@ -38,6 +38,7 @@ func (p *Producer) Save(id int, key, link string) error {
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
 
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(linkDao)
 
 	if err != nil {
@@ -60,11 +61,12 @@ func (p *Producer) Close() error {
 }
 
 type Consumer struct {
+	db      database
 	file    *os.File
 	scanner *bufio.Scanner
 }
 
-func NewConsumer(fname string) (*Consumer, error) {
+func NewConsumer(db database, fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
@@ -72,22 +74,24 @@ func NewConsumer(fname string) (*Consumer, error) {
 	}
 
 	return &Consumer{
+		db:      db,
 		file:    file,
 		scanner: bufio.NewScanner(file),
 	}, nil
 }
 
-func (c *Consumer) Load(db database) error {
+func (c *Consumer) Load() error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
 
 		if err != nil {
 			return fmt.Errorf("сonsumer failed to unmarshal dao: %w", err)
 		}
 
-		if err := db.SetLink(linkDao.ShortURL, linkDao.OriginalURL); err != nil {
-			return fmt.Errorf("сonsumer failed to load from storage: %w", err)
+		if err := c.db.SetLink(linkDao.ShortURL, linkDao.OriginalURL); err != nil {
+			return fmt.Errorf("сonsumer failed to load data into storage: %w", err)
 		}
 	}
 	return nil

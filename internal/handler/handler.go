@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
 	log "github.com/sirupsen/logrus"
@@ -82,10 +82,15 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *URLHandler) shortenURLJson(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	req := dto.NewRequest()
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	if err := json.Unmarshal(body, req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -125,7 +130,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r.Use(middleware.Gzip)
 	r.Get("/{id}", h.getOriginalURL)
 	r.Post("/", h.shortenURL)
-	r.Post("/api/shorten", h.shortenURLJson)
+	r.Post("/api/shorten", h.shortenURLJSON)
 	return r
 }
 

@@ -40,9 +40,18 @@ func (c *Cfg) SetFilePath(filePath string) {
 }
 
 func (c *Cfg) ParseCfg() {
-	flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
-	flag.StringVar(&c.baseURL, "b", "http://localhost:8080", "Base address of the resulting shortened URL")
-	flag.StringVar(&c.filePath, "f", "/tmp/short-url-db.json", "Path to disk storage")
+	if flag.Lookup("a") == nil {
+		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
+	}
+
+	if flag.Lookup("b") == nil {
+		flag.StringVar(&c.baseURL, "b", "http://localhost:8080", "Base address of the resulting shortened URL")
+	}
+
+	if flag.Lookup("f") == nil {
+		flag.StringVar(&c.filePath, "f", "/tmp/short-url-db.json", "Path to disk storage")
+	}
+
 	flag.Parse()
 
 	if a := os.Getenv("SERVER_ADDRESS"); a != "" {

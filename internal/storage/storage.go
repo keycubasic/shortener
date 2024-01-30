@@ -22,13 +22,13 @@ func NewLinks(cfg configuration) (*Links, error) {
 	ls := &Links{links: make(map[string]string)}
 
 	if cfg.GetFilePath() != "" {
-		consumer, err := loader.NewConsumer(cfg.GetFilePath())
+		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
 
 		if err != nil {
 			return nil, fmt.Errorf("storage failed to create consumer: %w", err)
 		}
 
-		if err := consumer.Load(ls); err != nil {
+		if err := consumer.Load(); err != nil {
 			return nil, fmt.Errorf("storage failed to load data from file: %w", err)
 		}
 

@@ -16,21 +16,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRunServer(t *testing.T) {
-	apiShortenURI := "/api/shorten"
-	cfg := config.NewCfg()
-	cfg.ParseCfg()
+const (
+	apiShortenURI = "/api/shorten"
+)
+
+func configureTestServer(cfg configuration) (*httptest.Server, error) {
 	db, err := storage.NewLinks(cfg)
+
 	if err != nil {
-		t.Fatal(err.Error())
+		return nil, err
 	}
+
 	app := app.NewApp(db)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
+	return ts, nil
+}
+
+func BenchmarkJSONHandler(b *testing.B) {
+	cfg := config.NewCfg()
+	cfg.ParseCfg()
+	ts, err := configureTestServer(cfg)
+
+	if err != nil {
+		b.Log(err)
+	}
+
+	defer ts.Close()
+	body := "{\"url\":\"https://ya.ru\"}"
+	r := httptest.NewRequest("POST", apiShortenURI, strings.NewReader(body))
+	r.RequestURI = ""
+	r.Header.Set("Content-Type", contentTypeJSON)
+	r.Header.Set("Accept-Encoding", "gzip")
+
+	for i := 0; i < b.N; i++ {
+		http.DefaultClient.Do(r)
+	}
+}
+
+func TestRunServer(t *testing.T) {
+	cfg := config.NewCfg()
+	cfg.ParseCfg()
+	ts, err := configureTestServer(cfg)
+
+	if err != nil {
+		t.Log(err)
+	}
+
+	defer ts.Close()
 	t.Logf("Test server listening address %s with base URL %s and disk store support at %s",
 		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
-	defer ts.Close()
 
 	tests := []struct {
 		name         string
@@ -79,7 +115,9 @@ func TestRunServer(t *testing.T) {
 			uri:          apiShortenURI,
 			body:         "https://google.com",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "invalid character 'h' looking for beginning of value",
+			// expectedBody: "invalid character 'h' looking for beginning of value", // std
+			// expectedBody: "parse error: syntax error near offset 0 of 'https://go...'", // easyjson
+			expectedBody: "Skip: do not know how to skip: 104, error found in #1 byte of ...|https://goo|..., bigger context ...|https://google.com|...", // jsoniter
 		},
 		{
 			name:         "TestHandler6",
@@ -88,7 +126,10 @@ func TestRunServer(t *testing.T) {
 			uri:          apiShortenURI,
 			body:         "{url:}",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "invalid character 'u' looking for beginning of object key string",
+			// expectedBody: "invalid character 'u' looking for beginning of object key string", // std
+			// expectedBody: "parse error: syntax error near offset 1 of '{url:}'", // easyjson
+			expectedBody: "ReadObjectCB: expect \" after {, but found u, error found in #2 byte of ...|{url:}|..., bigger context ...|{url:}|...", // jsoniter
+			
 		},
 		{
 			name:         "TestHandler7",
@@ -106,7 +147,9 @@ func TestRunServer(t *testing.T) {
 			uri:          apiShortenURI,
 			body:         "{\"url\":\"1\n2\"}",
 			expectedCode: http.StatusBadRequest,
-			expectedBody: "invalid character '\\n' in string literal",
+			// expectedBody: "invalid character '\\n' in string literal", // std
+			// expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL", // easyjson
+			expectedBody: "trySkipString: invalid control character found: 10, error found in #8 byte of ...|{\"url\":\"1\n2\"}|..., bigger context ...|{\"url\":\"1\n2\"}|...", // jsoniter
 		},
 		{
 			name:         "TestHandler9",
@@ -175,7 +218,7 @@ func TestRunServer(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 
 			if tt.expectedBody != "" {
-				if response.StatusCode < 300 {
+				if response.StatusCode < http.StatusMultipleChoices {
 					assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
 				}
 
@@ -191,7 +234,7 @@ func TestRunServer(t *testing.T) {
 
 				body := string(resBody)
 
-				if tt.contentType == contentTypeJSON && response.StatusCode < 300 {
+				if tt.contentType == contentTypeJSON && response.StatusCode < http.StatusMultipleChoices {
 					require.JSONEq(t, tt.expectedBody, body)
 				}
 

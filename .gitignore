@@ -27,3 +27,4 @@ vendor/
 
 # Internal
 tmp/
+*_easyjson.go

@@ -1,5 +1,6 @@
 package dao
 
+// go:generate easyjson -all dao.go
 type LinkDao struct {
 	UUID        int    `json:"uuid"`
 	ShortURL    string `json:"short_url"`
@@ -7,5 +8,5 @@ type LinkDao struct {
 }
 
 func NewLinkDao() *LinkDao {
-	return &LinkDao{}
+	return new(LinkDao)
 }

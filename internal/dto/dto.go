@@ -1,7 +1,8 @@
 package dto
 
+// go:generate easyjson -all dto.go
 type Request struct {
-	URL string `json:"url" valid:"url"`
+	URL string `json:"url"`
 }
 
 type Response struct {
