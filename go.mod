@@ -9,11 +9,9 @@ require (
 )
 
 require (
-	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	golang.org/x/perf v0.0.0-20240108191414-4ad5199aa6b5 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 )
 

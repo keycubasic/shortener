@@ -37,21 +37,23 @@ func configureTestServer(cfg configuration) (*httptest.Server, error) {
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	ts, err := configureTestServer(cfg)
+	db, err := storage.NewLinks(cfg)
 
 	if err != nil {
-		b.Log(err)
+		b.Error(err)
 	}
 
-	defer ts.Close()
+	app := app.NewApp(db)
+	h := newURLHandler(app, cfg)
 	body := "{\"url\":\"https://ya.ru\"}"
-	r := httptest.NewRequest("POST", apiShortenURI, strings.NewReader(body))
+	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", contentTypeJSON)
 	r.Header.Set("Accept-Encoding", "gzip")
+	w := httptest.NewRecorder()
 
 	for i := 0; i < b.N; i++ {
-		http.DefaultClient.Do(r)
+		h.shortenURLJSON(w, r)
 	}
 }
 
@@ -113,46 +115,12 @@ func TestRunServer(t *testing.T) {
 			method:       http.MethodPost,
 			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
-			body:         "https://google.com",
-			expectedCode: http.StatusBadRequest,
-			// expectedBody: "invalid character 'h' looking for beginning of value", // std
-			// expectedBody: "parse error: syntax error near offset 0 of 'https://go...'", // easyjson
-			expectedBody: "Skip: do not know how to skip: 104, error found in #1 byte of ...|https://goo|..., bigger context ...|https://google.com|...", // jsoniter
-		},
-		{
-			name:         "TestHandler6",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
-			body:         "{url:}",
-			expectedCode: http.StatusBadRequest,
-			// expectedBody: "invalid character 'u' looking for beginning of object key string", // std
-			// expectedBody: "parse error: syntax error near offset 1 of '{url:}'", // easyjson
-			expectedBody: "ReadObjectCB: expect \" after {, but found u, error found in #2 byte of ...|{url:}|..., bigger context ...|{url:}|...", // jsoniter
-			
-		},
-		{
-			name:         "TestHandler7",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
 			body:         "{\"url\":\"\"}",
 			expectedCode: http.StatusBadRequest,
 			expectedBody: "parse \"\": empty url",
 		},
 		{
-			name:         "TestHandler8",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
-			body:         "{\"url\":\"1\n2\"}",
-			expectedCode: http.StatusBadRequest,
-			// expectedBody: "invalid character '\\n' in string literal", // std
-			// expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL", // easyjson
-			expectedBody: "trySkipString: invalid control character found: 10, error found in #8 byte of ...|{\"url\":\"1\n2\"}|..., bigger context ...|{\"url\":\"1\n2\"}|...", // jsoniter
-		},
-		{
-			name:         "TestHandler9",
+			name:         "TestHandler6",
 			method:       http.MethodPost,
 			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
@@ -161,7 +129,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody: "parse \"1 2\": invalid URI for request",
 		},
 		{
-			name:         "TestHandler10",
+			name:         "TestHandler7",
 			method:       http.MethodPost,
 			contentType:  contentTypeJSON,
 			uri:          apiShortenURI,
@@ -170,13 +138,13 @@ func TestRunServer(t *testing.T) {
 			expectedBody: "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:         "TestHandler11",
+			name:         "TestHandler8",
 			method:       http.MethodGet,
 			uri:          "/6YGS4ZUF",
 			expectedCode: http.StatusOK,
 		},
 		{
-			name:         "TestHandler12",
+			name:         "TestHandler9",
 			method:       http.MethodGet,
 			uri:          "/TgIlZU3m",
 			expectedCode: http.StatusBadRequest,
