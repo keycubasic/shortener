@@ -2,27 +2,42 @@ package handler
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/keycubasic/shortener/internal/app"
-	"github.com/keycubasic/shortener/internal/config"
+	"github.com/keycubasic/shortener/internal/dto"
+	"github.com/keycubasic/shortener/internal/middleware"
+	json "github.com/mailru/easyjson"
+	log "github.com/sirupsen/logrus"
 )
 
-type URLHandler struct {
-	app *app.App
-	cfg *config.Cfg
+const (
+	contentTypeJSON = "application/json"
+	contentTypeText = "text/plain; charset=utf-8"
+)
+
+type application interface {
+	GetLink(key string) (string, bool)
+	CreateShortLink(link string) (string, error)
 }
 
-func NewURLHandler(app *app.App, cfg *config.Cfg) *URLHandler {
+type configuration interface {
+	GetAddress() string
+	GetBaseURL() string
+	GetFilePath() string
+}
+
+type URLHandler struct {
+	app application
+	cfg configuration
+}
+
+func newURLHandler(app application, cfg configuration) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
 }
 
-func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, ok := h.app.GetLink(id)
 
@@ -35,7 +50,7 @@ func (h *URLHandler) GetOriginalURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -45,16 +60,6 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 
 	link := string(body)
 
-	if link == "" {
-		http.Error(w, "body should't be empty", http.StatusBadRequest)
-		return
-	}
-
-	if strings.Contains(link, "\n") {
-		http.Error(w, "body contains too many lines", http.StatusBadRequest)
-		return
-	}
-
 	if _, err := url.ParseRequestURI(link); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -63,13 +68,55 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	key, err := h.app.CreateShortLink(link)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // http.StatusInternalServerError
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Add("Content-Type", "text/plain")
+	w.Header().Add("Content-Type", contentTypeText)
 	w.WriteHeader(http.StatusCreated)
 	resBody := h.cfg.GetBaseURL() + "/" + key
+
+	if _, err := w.Write([]byte(resBody)); err != nil {
+		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		return
+	}
+}
+
+func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
+	req := dto.NewRequest()
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	if err := json.Unmarshal(body, req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if _, err := url.ParseRequestURI(req.URL); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	key, err := h.app.CreateShortLink(req.URL)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
+	resBody, err := json.Marshal(res)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Add("Content-Type", contentTypeJSON)
+	w.WriteHeader(http.StatusCreated)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
 		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
@@ -80,15 +127,18 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Get("/{id}", h.GetOriginalURL)
-	r.Post("/", h.ShortenURL)
+	r.Use(middleware.Gzip)
+	r.Get("/{id}", h.getOriginalURL)
+	r.Post("/", h.shortenURL)
+	r.Post("/api/shorten", h.shortenURLJSON)
 	return r
 }
 
-func RunServer(app *app.App, cfg *config.Cfg) {
-	h := NewURLHandler(app, cfg)
+func RunServer(app application, cfg configuration) {
+	h := newURLHandler(app, cfg)
 	r := h.getRouter()
-	log.Printf("Server listening address %s with base URL %s", cfg.GetAddress(), cfg.GetBaseURL())
+	log.Infof("Server listening address %s with base URL %s and disk store support at %s",
+		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
 
 	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
 		log.Fatal(err)

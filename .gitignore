@@ -21,3 +21,9 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+# Sonar scanner
+.scannerwork
+
+# Internal
+tmp/
