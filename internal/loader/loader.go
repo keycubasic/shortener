@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/dao"
+	json "github.com/mailru/easyjson"
 )
 
 type database interface {
@@ -38,7 +38,6 @@ func (p *Producer) Save(id int, key, link string) error {
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(linkDao)
 
 	if err != nil {
@@ -83,7 +82,6 @@ func NewConsumer(db database, fname string) (*Consumer, error) {
 func (c *Consumer) Load() error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
 
 		if err != nil {

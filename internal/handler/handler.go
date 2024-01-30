@@ -6,9 +6,9 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
+	json "github.com/mailru/easyjson"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -85,11 +85,11 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	req := dto.NewRequest()
 	body, err := io.ReadAll(r.Body)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(body, req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
