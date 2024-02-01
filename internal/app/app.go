@@ -1,31 +1,44 @@
 package app
 
 import (
+	"context"
 	"crypto/md5"
+	"database/sql"
 	"encoding/base64"
 	"regexp"
+	"time"
 )
 
-type database interface {
+type databaseLegacy interface {
 	GetLink(key string) (string, bool)
 	SetLink(key string, link string) error
 }
 
 type App struct {
-	db database
+	db       *sql.DB
+	dbLegacy databaseLegacy
 }
 
-func NewApp(db database) *App {
-	return &App{db: db}
+func NewApp(dbLegacy databaseLegacy, db *sql.DB) *App {
+	return &App{
+		db:       db,
+		dbLegacy: dbLegacy,
+	}
+}
+
+func (a *App) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	return a.db.PingContext(ctx)
 }
 
 func (a *App) GetLink(id string) (string, bool) {
-	return a.db.GetLink(id)
+	return a.dbLegacy.GetLink(id)
 }
 
 func (a *App) CreateShortLink(link string) (string, error) {
 	key := genKey(link)
-	a.db.SetLink(key, link)
+	a.dbLegacy.SetLink(key, link)
 	return key, nil
 }
 

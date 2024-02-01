@@ -18,6 +18,7 @@ const (
 )
 
 type application interface {
+	Ping() error
 	GetLink(key string) (string, bool)
 	CreateShortLink(link string) (string, error)
 }
@@ -35,6 +36,14 @@ type URLHandler struct {
 
 func newURLHandler(app application, cfg configuration) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
+}
+
+func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
+	if err := h.app.Ping(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +137,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Gzip)
+	r.Get("/ping", h.getPingDB)
 	r.Get("/{id}", h.getOriginalURL)
 	r.Post("/", h.shortenURL)
 	r.Post("/api/shorten", h.shortenURLJSON)
