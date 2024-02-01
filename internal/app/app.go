@@ -5,9 +5,16 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"regexp"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+type configuration interface {
+	GetDatabaseDSN() string
+}
 
 type databaseLegacy interface {
 	GetLink(key string) (string, bool)
@@ -15,19 +22,37 @@ type databaseLegacy interface {
 }
 
 type App struct {
+	cfg      configuration
 	db       *sql.DB
 	dbLegacy databaseLegacy
 }
 
-func NewApp(dbLegacy databaseLegacy, db *sql.DB) *App {
+func NewApp(cfg configuration, dbLegacy databaseLegacy) *App {
 	return &App{
-		db:       db,
+		cfg:      cfg,
 		dbLegacy: dbLegacy,
 	}
 }
 
+func (a *App) OpenConnection() error {
+	log.Infoln("Database DSN:", a.cfg.GetDatabaseDSN())
+	db, err := sql.Open("pgx", a.cfg.GetDatabaseDSN())
+
+	if err != nil {
+		return fmt.Errorf("database open connection failed: %w", err)
+	}
+
+	log.Infoln("Database connected")
+	a.db = db
+	return nil
+}
+
+func (a *App) CloseConnection() error {
+	return a.db.Close()
+}
+
 func (a *App) Ping() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return a.db.PingContext(ctx)
 }

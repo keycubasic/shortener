@@ -18,6 +18,8 @@ const (
 )
 
 type application interface {
+	OpenConnection() error
+	CloseConnection() error
 	Ping() error
 	GetLink(key string) (string, bool)
 	CreateShortLink(link string) (string, error)
@@ -27,6 +29,7 @@ type configuration interface {
 	GetAddress() string
 	GetBaseURL() string
 	GetFilePath() string
+	GetDatabaseDSN() string
 }
 
 type URLHandler struct {
@@ -39,10 +42,17 @@ func newURLHandler(app application, cfg configuration) *URLHandler {
 }
 
 func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
+	if err := h.app.OpenConnection(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer h.app.CloseConnection()
+
 	if err := h.app.Ping(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

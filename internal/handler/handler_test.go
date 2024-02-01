@@ -27,7 +27,7 @@ func configureTestServer(cfg configuration) (*httptest.Server, error) {
 		return nil, err
 	}
 
-	app := app.NewApp(dbLegacy, nil)
+	app := app.NewApp(cfg, dbLegacy)
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	ts := httptest.NewServer(r)
@@ -43,7 +43,7 @@ func BenchmarkJSONHandler(b *testing.B) {
 		b.Error(err)
 	}
 
-	app := app.NewApp(dbLegacy, nil)
+	app := app.NewApp(cfg, dbLegacy)
 	h := newURLHandler(app, cfg)
 	body := "{\"url\":\"https://ya.ru\"}"
 	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
