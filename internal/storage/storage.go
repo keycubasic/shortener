@@ -47,19 +47,22 @@ func (ls *Links) GetLink(key string) (string, error) {
 	var val string
 
 	err := row.Scan(&val)
+
 	if err != nil {
 		return "", fmt.Errorf("select link from database failed: %w", err)
 	}
+
 	return val, nil
 }
 
 func (ls *Links) SetLink(key string, link string) error {
-	ls.Lock()
-	defer ls.Unlock()
-
 	if link, err := ls.GetLink(key); err != nil {
+		ls.Lock()
+		defer ls.Unlock()
+
 		_, err := ls.db.ExecContext(context.Background(),
 			"INSERT INTO links (key, value) VALUES ($1,$2)", key, link)
+
 		if err != nil {
 			return fmt.Errorf("insert link to database failed: %w", err)
 		}
@@ -75,9 +78,11 @@ func (ls *Links) Count() (int, error) {
 	var cnt int
 
 	err := row.Scan(&cnt)
+
 	if err != nil {
 		return 0, fmt.Errorf("select links count from database failed: %w", err)
 	}
+
 	return cnt, nil
 }
 

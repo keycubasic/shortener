@@ -46,6 +46,8 @@ func NewLinks(cfg Cfg) (*Links, error) {
 		}
 	}
 
+	log.Infoln("Internal storage created...")
+
 	return ls, nil
 }
 

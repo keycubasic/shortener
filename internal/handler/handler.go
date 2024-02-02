@@ -149,8 +149,8 @@ func (h *URLHandler) getRouter() chi.Router {
 func RunServer(app application, cfg Cfg) {
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
-	log.Infof("Server listening address %s with base URL %s and disk store support at %s",
-		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
+	log.Infof("Server listening address %s with base URL %s",
+		cfg.GetAddress(), cfg.GetBaseURL())
 
 	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
 		log.Fatal(err)
