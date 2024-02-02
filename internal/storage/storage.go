@@ -29,7 +29,7 @@ func NewLinks(cfg Cfg) (*Links, error) {
 	log.Infoln("Database connected...")
 
 	_, err = db.ExecContext(context.Background(),
-		"CREATE TABLE IF NOT EXISTS links (key TEXT primary key, value TEXT)")
+		"CREATE TABLE IF NOT EXISTS links (key TEXT primary key, value TEXT); GRANT ALL PRIVILEGES ON links TO PUBLIC;")
 
 	if err != nil {
 		return nil, fmt.Errorf("create table links failed: %w", err)
@@ -56,7 +56,7 @@ func (ls *Links) GetLink(key string) (string, error) {
 }
 
 func (ls *Links) SetLink(key string, link string) error {
-	if link, err := ls.GetLink(key); err != nil {
+	if _, err := ls.GetLink(key); err != nil {
 		ls.Lock()
 		defer ls.Unlock()
 
