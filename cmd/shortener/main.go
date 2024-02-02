@@ -6,19 +6,29 @@ import (
 	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/handler"
 	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/keycubasic/shortener/internal/storage_legacy"
 	log "github.com/sirupsen/logrus"
 )
+
+func connectDB(cfg *config.Cfg) (app.DB, error) {
+	if cfg.GetDatabaseDSN() != "" {
+		return storage.NewLinks(cfg)
+	} else {
+		return storage_legacy.NewLinks(cfg)
+	}
+}
 
 func main() {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-
-	dbLegacy, err := storage.NewLinks(cfg)
+	db, err := connectDB(cfg)
 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	app := app.NewApp(cfg, dbLegacy)
+	defer db.Close()
+
+	app := app.NewApp(db)
 	handler.RunServer(app, cfg)
 }

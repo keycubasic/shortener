@@ -62,7 +62,7 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("d") == nil {
-		flag.StringVar(&c.databaseDSN, "d", "host=localhost port=5432 user=postgres password=1 dbname=shortener_db sslmode=disable", "String with database connection address")
+		flag.StringVar(&c.databaseDSN, "d", "", "Database connection address")
 	}
 
 	flag.Parse()

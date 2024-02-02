@@ -9,9 +9,8 @@ import (
 	json "github.com/mailru/easyjson"
 )
 
-//go:generate mockgen -source loader.go -destination mock_storage.go -package storage database
 type database interface {
-	GetLink(key string) (string, bool)
+	GetLink(key string) (string, error)
 	SetLink(key string, link string) error
 }
 

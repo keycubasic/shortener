@@ -11,7 +11,8 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/keycubasic/shortener/internal/storage_legacy"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,31 +21,32 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func configureTestServer(cfg configuration) (*httptest.Server, error) {
-	dbLegacy, err := storage.NewLinks(cfg)
+func connectDB(cfg Cfg) (app.DB, error) {
+	return storage_legacy.NewLinks(cfg)
+}
+
+func configureTestHandler(cfg Cfg) (*URLHandler, error) {
+	db, err := connectDB(cfg)
 
 	if err != nil {
-		return nil, err
+		log.Fatal(err.Error())
 	}
+	defer db.Close()
 
-	app := app.NewApp(cfg, dbLegacy)
+	app := app.NewApp(db)
 	h := newURLHandler(app, cfg)
-	r := h.getRouter()
-	ts := httptest.NewServer(r)
-	return ts, nil
+	return h, nil
 }
 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	dbLegacy, err := storage.NewLinks(cfg)
+	h, err := configureTestHandler(cfg)
 
 	if err != nil {
-		b.Error(err)
+		b.Fatal(err)
 	}
 
-	app := app.NewApp(cfg, dbLegacy)
-	h := newURLHandler(app, cfg)
 	body := "{\"url\":\"https://ya.ru\"}"
 	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
 	r.RequestURI = ""
@@ -60,11 +62,14 @@ func BenchmarkJSONHandler(b *testing.B) {
 func TestRunServer(t *testing.T) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	ts, err := configureTestServer(cfg)
+	h, err := configureTestHandler(cfg)
 
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
+
+	r := h.getRouter()
+	ts := httptest.NewServer(r)
 
 	defer ts.Close()
 	t.Logf("Test server listening address %s with base URL %s and disk store support at %s",

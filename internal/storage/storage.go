@@ -1,75 +1,90 @@
 package storage
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 
-	"github.com/keycubasic/shortener/internal/loader"
 	log "github.com/sirupsen/logrus"
 )
 
-type configuration interface {
-	GetFilePath() string
+type Cfg interface {
+	GetDatabaseDSN() string
 }
 
 type Links struct {
 	sync.RWMutex
-	links    map[string]string
-	producer *loader.Producer
+	db *sql.DB
 }
 
-func NewLinks(cfg configuration) (*Links, error) {
-	ls := &Links{links: make(map[string]string)}
+func NewLinks(cfg Cfg) (*Links, error) {
+	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
+	db, err := sql.Open("pgx", cfg.GetDatabaseDSN())
 
-	if cfg.GetFilePath() != "" {
-		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
-
-		if err != nil {
-			return nil, fmt.Errorf("storage failed to create consumer: %w", err)
-		}
-
-		if err := consumer.Load(); err != nil {
-			return nil, fmt.Errorf("storage failed to load data from file: %w", err)
-		}
-
-		if err := consumer.Close(); err != nil {
-			return nil, fmt.Errorf("storage failed to close consumer: %w", err)
-		}
-
-		log.Infoln("Records count preloaded from disk storage:", ls.Count())
-
-		// Init producer
-		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
-			return nil, fmt.Errorf("storage failed to create producer: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("database open connection failed: %w", err)
 	}
 
-	return ls, nil
+	log.Infoln("Database connected...")
+
+	_, err = db.ExecContext(context.Background(),
+		"CREATE TABLE IF NOT EXISTS links (key TEXT primary key, value TEXT)")
+
+	if err != nil {
+		return nil, fmt.Errorf("create table links failed: %w", err)
+	}
+
+	return &Links{db: db}, nil
 }
 
-func (ls *Links) GetLink(key string) (string, bool) {
+func (ls *Links) GetLink(key string) (string, error) {
 	ls.RLock()
 	defer ls.RUnlock()
-	val, ok := ls.links[key]
-	return val, ok
+
+	row := ls.db.QueryRowContext(context.Background(),
+		"SELECT value FROM links WHERE key = $1", key)
+	var val string
+
+	err := row.Scan(&val)
+	if err != nil {
+		return "", fmt.Errorf("select link from database failed: %w", err)
+	}
+	return val, nil
 }
 
 func (ls *Links) SetLink(key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
-	ls.links[key] = link
 
-	if ls.producer != nil {
-		id := ls.Count() + 1
-
-		if err := ls.producer.Save(id, key, link); err != nil {
-			return fmt.Errorf("storage failed to save data into file: %w", err)
+	if link, err := ls.GetLink(key); err != nil {
+		_, err := ls.db.ExecContext(context.Background(),
+			"INSERT INTO links (key, value) VALUES ($1,$2)", key, link)
+		if err != nil {
+			return fmt.Errorf("insert link to database failed: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func (ls *Links) Count() int {
-	return len(ls.links)
+func (ls *Links) Count() (int, error) {
+	//unused
+	row := ls.db.QueryRowContext(context.Background(),
+		"SELECT COUNT(1) FROM links")
+	var cnt int
+
+	err := row.Scan(&cnt)
+	if err != nil {
+		return 0, fmt.Errorf("select links count from database failed: %w", err)
+	}
+	return cnt, nil
+}
+
+func (ls *Links) Close() error {
+	return ls.db.Close()
+}
+
+func (ls *Links) PingContext(ctx context.Context) error {
+	return ls.db.PingContext(ctx)
 }

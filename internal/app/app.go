@@ -3,52 +3,27 @@ package app
 import (
 	"context"
 	"crypto/md5"
-	"database/sql"
 	"encoding/base64"
-	"fmt"
 	"regexp"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
-type configuration interface {
-	GetDatabaseDSN() string
-}
-
-type databaseLegacy interface {
-	GetLink(key string) (string, bool)
+//go:generate mockgen -source app.go -destination mock_storage.go -package mock database
+type DB interface {
+	GetLink(key string) (string, error)
 	SetLink(key string, link string) error
+	Close() error
+	PingContext(ctx context.Context) error
 }
 
 type App struct {
-	cfg      configuration
-	db       *sql.DB
-	dbLegacy databaseLegacy
+	db DB
 }
 
-func NewApp(cfg configuration, dbLegacy databaseLegacy) *App {
+func NewApp(db DB) *App {
 	return &App{
-		cfg:      cfg,
-		dbLegacy: dbLegacy,
+		db: db,
 	}
-}
-
-func (a *App) OpenConnection() error {
-	log.Infoln("Database DSN:", a.cfg.GetDatabaseDSN())
-	db, err := sql.Open("pgx", a.cfg.GetDatabaseDSN())
-
-	if err != nil {
-		return fmt.Errorf("database open connection failed: %w", err)
-	}
-
-	log.Infoln("Database connected")
-	a.db = db
-	return nil
-}
-
-func (a *App) CloseConnection() error {
-	return a.db.Close()
 }
 
 func (a *App) Ping() error {
@@ -57,13 +32,13 @@ func (a *App) Ping() error {
 	return a.db.PingContext(ctx)
 }
 
-func (a *App) GetLink(id string) (string, bool) {
-	return a.dbLegacy.GetLink(id)
+func (a *App) GetLink(id string) (string, error) {
+	return a.db.GetLink(id)
 }
 
 func (a *App) CreateShortLink(link string) (string, error) {
 	key := genKey(link)
-	a.dbLegacy.SetLink(key, link)
+	a.db.SetLink(key, link)
 	return key, nil
 }
 

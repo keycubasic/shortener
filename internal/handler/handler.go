@@ -18,14 +18,12 @@ const (
 )
 
 type application interface {
-	OpenConnection() error
-	CloseConnection() error
 	Ping() error
-	GetLink(key string) (string, bool)
+	GetLink(key string) (string, error)
 	CreateShortLink(link string) (string, error)
 }
 
-type configuration interface {
+type Cfg interface {
 	GetAddress() string
 	GetBaseURL() string
 	GetFilePath() string
@@ -34,20 +32,14 @@ type configuration interface {
 
 type URLHandler struct {
 	app application
-	cfg configuration
+	cfg Cfg
 }
 
-func newURLHandler(app application, cfg configuration) *URLHandler {
+func newURLHandler(app application, cfg Cfg) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
 }
 
 func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
-	if err := h.app.OpenConnection(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer h.app.CloseConnection()
-
 	if err := h.app.Ping(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -58,9 +50,9 @@ func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	link, ok := h.app.GetLink(id)
+	link, err := h.app.GetLink(id)
 
-	if !ok {
+	if err != nil {
 		http.Error(w, "target link not found", http.StatusBadRequest)
 		return
 	}
@@ -154,7 +146,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
-func RunServer(app application, cfg configuration) {
+func RunServer(app application, cfg Cfg) {
 	h := newURLHandler(app, cfg)
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s and disk store support at %s",
