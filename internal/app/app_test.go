@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storage_legacy"
+	"github.com/keycubasic/shortener/internal/storageinternal"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,7 +32,7 @@ func TestCreateShortLink(t *testing.T) {
 	cfg := config.NewCfg()
 	var db DB
 	var err error
-	db, err = storage_legacy.NewLinks(cfg)
+	db, err = storageinternal.NewLinks(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

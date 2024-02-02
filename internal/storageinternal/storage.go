@@ -1,4 +1,4 @@
-package storage_legacy
+package storageinternal
 
 import (
 	"context"

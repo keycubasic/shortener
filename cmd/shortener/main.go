@@ -6,7 +6,7 @@ import (
 	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/handler"
 	"github.com/keycubasic/shortener/internal/storage"
-	"github.com/keycubasic/shortener/internal/storage_legacy"
+	"github.com/keycubasic/shortener/internal/storageinternal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +14,7 @@ func connectDB(cfg *config.Cfg) (app.DB, error) {
 	if cfg.GetDatabaseDSN() != "" {
 		return storage.NewLinks(cfg)
 	} else {
-		return storage_legacy.NewLinks(cfg)
+		return storageinternal.NewLinks(cfg)
 	}
 }
 

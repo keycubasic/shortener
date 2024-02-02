@@ -11,7 +11,7 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storage_legacy"
+	"github.com/keycubasic/shortener/internal/storageinternal"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ const (
 )
 
 func connectDB(cfg Cfg) (app.DB, error) {
-	return storage_legacy.NewLinks(cfg)
+	return storageinternal.NewLinks(cfg)
 }
 
 func configureTestHandler(cfg Cfg) (*URLHandler, error) {
