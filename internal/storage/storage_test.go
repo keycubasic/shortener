@@ -15,10 +15,10 @@ func TestGetLink(t *testing.T) {
 
 	m := mock.NewMockDB(ctrl)
 
-	value := "6YGS4ZUF"
-	m.EXPECT().GetLink("https://ya.ru").Return(value, nil)
+	value := "https://ya.ru"
+	m.EXPECT().GetLink("6YGS4ZUF").Return(value, nil)
 
-	val, err := m.GetLink("https://ya.ru")
+	val, err := m.GetLink("6YGS4ZUF")
 
 	require.NoError(t, err)
 	require.Equal(t, val, value)
