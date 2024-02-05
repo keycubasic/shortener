@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/dto"
@@ -30,8 +29,6 @@ func NewApp(db DB) *App {
 }
 
 func (a *App) Ping(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
 	return a.db.PingContext(ctx)
 }
 
