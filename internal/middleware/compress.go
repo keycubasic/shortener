@@ -90,7 +90,6 @@ func Gzip(next http.Handler) http.Handler {
 			cr, err := newCompressReader(r.Body)
 
 			if err != nil {
-				// w.WriteHeader(http.StatusInternalServerError)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}

@@ -53,7 +53,7 @@ func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 		return nil, fmt.Errorf("create index on table links failed: %w", err)
 	}
 
-	_, err = db.ExecContext(ctx,`
+	_, err = db.ExecContext(ctx, `
 		GRANT ALL PRIVILEGES ON links TO PUBLIC;
 		`)
 
@@ -69,7 +69,7 @@ func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
 }
 
 func (ls *Links) GetLinkUnlocked(ctx context.Context, key string) (string, error) {
-	row := ls.db.QueryRowContext(ctx,`
+	row := ls.db.QueryRowContext(ctx, `
 		SELECT original_url FROM links WHERE short_url = $1
 		`, key)
 	var val string
@@ -96,7 +96,7 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 
 	if _, err := ls.GetLinkUnlocked(ctx, key); err != nil {
 
-		if _, err := ls.db.ExecContext(ctx,`
+		if _, err := ls.db.ExecContext(ctx, `
 			INSERT INTO links (short_url, original_url) VALUES ($1,$2)
 			`, key, link); err != nil {
 			return fmt.Errorf("insert link to database failed: %w", err)
@@ -111,7 +111,7 @@ func (ls *Links) Count(ctx context.Context) (int, error) {
 	ls.RLock()
 	defer ls.RUnlock()
 
-	row := ls.db.QueryRowContext(ctx,`
+	row := ls.db.QueryRowContext(ctx, `
 		SELECT COUNT(1) FROM links
 		`)
 	var cnt int
@@ -144,7 +144,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx,`
+	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO links (short_url, original_url) VALUES ($1,$2)
 		`)
 

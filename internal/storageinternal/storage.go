@@ -20,14 +20,14 @@ type Cfg interface {
 
 type Links struct {
 	sync.RWMutex
-	cfg Cfg
+	cfg      Cfg
 	links    map[string]string
 	producer *loader.Producer
 }
 
 func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 	ls := &Links{
-		cfg: cfg,
+		cfg:   cfg,
 		links: make(map[string]string),
 	}
 
@@ -111,7 +111,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 		}
 
 		shortURL := gen.GenKey(linkDao.OriginalURL)
-		linkDao.ShortURL =  ls.cfg.GetBaseURL() + "/" + shortURL
+		linkDao.ShortURL = ls.cfg.GetBaseURL() + "/" + shortURL
 		if err := ls.SetLink(ctx, shortURL, linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("set link failed: %w", err)
 		}
