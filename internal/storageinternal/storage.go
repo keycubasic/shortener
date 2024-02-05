@@ -14,17 +14,22 @@ import (
 )
 
 type Cfg interface {
+	GetBaseURL() string
 	GetFilePath() string
 }
 
 type Links struct {
 	sync.RWMutex
+	cfg Cfg
 	links    map[string]string
 	producer *loader.Producer
 }
 
 func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
-	ls := &Links{links: make(map[string]string)}
+	ls := &Links{
+		cfg: cfg,
+		links: make(map[string]string),
+	}
 
 	if cfg.GetFilePath() != "" {
 		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
@@ -105,11 +110,9 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 			return nil, fmt.Errorf("parse request URI failed: %w", err)
 		}
 
-		shortUrl := gen.GenKey(linkDao.OriginalURL)
-		linkDao.ShortURL = shortUrl
-		err := ls.SetLink(ctx, shortUrl, linkDao.OriginalURL)
-
-		if err != nil {
+		shortURL := gen.GenKey(linkDao.OriginalURL)
+		linkDao.ShortURL =  ls.cfg.GetBaseURL() + "/" + shortURL
+		if err := ls.SetLink(ctx, shortURL, linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("set link failed: %w", err)
 		}
 	}

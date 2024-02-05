@@ -13,12 +13,14 @@ import (
 )
 
 type Cfg interface {
+	GetBaseURL() string
 	GetDatabaseDSN() string
 }
 
 type Links struct {
 	sync.RWMutex
-	db *sql.DB
+	cfg Cfg
+	db  *sql.DB
 }
 
 func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
@@ -56,19 +58,16 @@ func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 		return nil, fmt.Errorf("grant privilages on table links failed: %w", err)
 	}
 
-	return &Links{db: db}, nil
+	return &Links{cfg: cfg, db: db}, nil
 }
 
 func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
 	return ls.db.BeginTx(ctx, nil)
 }
 
-func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
-	ls.RLock()
-	defer ls.RUnlock()
-
+func (ls *Links) GetLinkUnlocked(ctx context.Context, key string) (string, error) {
 	row := ls.db.QueryRowContext(ctx,
-		"SELECT value FROM links WHERE short_url = $1", key)
+		"SELECT original_url FROM links WHERE short_url = $1", key)
 	var val string
 
 	err := row.Scan(&val)
@@ -80,15 +79,21 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 
+func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
+	ls.RLock()
+	defer ls.RUnlock()
+
+	return ls.GetLinkUnlocked(ctx, key)
+}
+
 func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
-	if _, err := ls.GetLink(ctx, key); err != nil {
-		ls.Lock()
-		defer ls.Unlock()
+	ls.Lock()
+	defer ls.Unlock()
 
-		_, err := ls.db.ExecContext(ctx,
-			"INSERT INTO links (short_url, original_url) VALUES ($1,$2)", key, link)
+	if _, err := ls.GetLinkUnlocked(ctx, key); err != nil {
 
-		if err != nil {
+		if _, err := ls.db.ExecContext(ctx,
+			"INSERT INTO links (short_url, original_url) VALUES ($1,$2)", key, link); err != nil {
 			return fmt.Errorf("insert link to database failed: %w", err)
 		}
 	}
@@ -146,12 +151,14 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 			return nil, fmt.Errorf("parse request URI failed: %w", err)
 		}
 
-		shortUrl := gen.GenKey(linkDao.OriginalURL)
-		linkDao.ShortURL = shortUrl
-		_, err := stmt.ExecContext(ctx, shortUrl, linkDao.OriginalURL)
+		shortURL := gen.GenKey(linkDao.OriginalURL)
+		linkDao.ShortURL = ls.cfg.GetBaseURL() + "/" + shortURL
 
-		if err != nil {
-			return nil, fmt.Errorf("execute statement failed: %w", err)
+		if _, err := ls.GetLinkUnlocked(ctx, shortURL); err != nil {
+
+			if _, err := stmt.ExecContext(ctx, shortURL, linkDao.OriginalURL); err != nil {
+				return nil, fmt.Errorf("execute statement failed: %w", err)
+			}
 		}
 	}
 
