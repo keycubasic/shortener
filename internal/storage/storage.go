@@ -33,26 +33,29 @@ func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 
 	log.Infoln("Database connected...")
 
-	_, err = db.ExecContext(ctx,
-		"CREATE TABLE IF NOT EXISTS links( "+
-			"uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY, "+
-			"short_url VARCHAR(8), "+
-			"original_url VARCHAR(100) "+
-			");")
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS links (
+			uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+			short_url VARCHAR(8),
+			original_url VARCHAR(100)
+		);
+		`)
 
 	if err != nil {
 		return nil, fmt.Errorf("create table links failed: %w", err)
 	}
 
-	_, err = db.ExecContext(ctx,
-		"CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);")
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);
+		`)
 
 	if err != nil {
 		return nil, fmt.Errorf("create index on table links failed: %w", err)
 	}
 
-	_, err = db.ExecContext(ctx,
-		"GRANT ALL PRIVILEGES ON links TO PUBLIC;")
+	_, err = db.ExecContext(ctx,`
+		GRANT ALL PRIVILEGES ON links TO PUBLIC;
+		`)
 
 	if err != nil {
 		return nil, fmt.Errorf("grant privilages on table links failed: %w", err)
@@ -66,8 +69,9 @@ func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
 }
 
 func (ls *Links) GetLinkUnlocked(ctx context.Context, key string) (string, error) {
-	row := ls.db.QueryRowContext(ctx,
-		"SELECT original_url FROM links WHERE short_url = $1", key)
+	row := ls.db.QueryRowContext(ctx,`
+		SELECT original_url FROM links WHERE short_url = $1
+		`, key)
 	var val string
 
 	err := row.Scan(&val)
@@ -92,8 +96,9 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 
 	if _, err := ls.GetLinkUnlocked(ctx, key); err != nil {
 
-		if _, err := ls.db.ExecContext(ctx,
-			"INSERT INTO links (short_url, original_url) VALUES ($1,$2)", key, link); err != nil {
+		if _, err := ls.db.ExecContext(ctx,`
+			INSERT INTO links (short_url, original_url) VALUES ($1,$2)
+			`, key, link); err != nil {
 			return fmt.Errorf("insert link to database failed: %w", err)
 		}
 	}
@@ -106,8 +111,9 @@ func (ls *Links) Count(ctx context.Context) (int, error) {
 	ls.RLock()
 	defer ls.RUnlock()
 
-	row := ls.db.QueryRowContext(ctx,
-		"SELECT COUNT(1) FROM links")
+	row := ls.db.QueryRowContext(ctx,`
+		SELECT COUNT(1) FROM links
+		`)
 	var cnt int
 
 	err := row.Scan(&cnt)
@@ -138,8 +144,9 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.PrepareContext(ctx,
-		"INSERT INTO links (short_url, original_url) VALUES ($1,$2)")
+	stmt, err := tx.PrepareContext(ctx,`
+		INSERT INTO links (short_url, original_url) VALUES ($1,$2)
+		`)
 
 	if err != nil {
 		return nil, fmt.Errorf("prepare statement failed: %w", err)
