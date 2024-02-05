@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"sync"
 
+	"github.com/keycubasic/shortener/internal/dao"
+	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/loader"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +23,7 @@ type Links struct {
 	producer *loader.Producer
 }
 
-func NewLinks(cfg Cfg) (*Links, error) {
+func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 	ls := &Links{links: make(map[string]string)}
 
 	if cfg.GetFilePath() != "" {
@@ -30,7 +33,7 @@ func NewLinks(cfg Cfg) (*Links, error) {
 			return nil, fmt.Errorf("storage failed to create consumer: %w", err)
 		}
 
-		if err := consumer.Load(); err != nil {
+		if err := consumer.Load(ctx); err != nil {
 			return nil, fmt.Errorf("storage failed to load data from file: %w", err)
 		}
 
@@ -38,7 +41,7 @@ func NewLinks(cfg Cfg) (*Links, error) {
 			return nil, fmt.Errorf("storage failed to close consumer: %w", err)
 		}
 
-		log.Infoln("Records count preloaded from disk storage:", ls.Count())
+		log.Infoln("Records count preloaded from disk storage:", ls.Count(ctx))
 
 		// Init producer
 		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
@@ -51,25 +54,27 @@ func NewLinks(cfg Cfg) (*Links, error) {
 	return ls, nil
 }
 
-func (ls *Links) GetLink(key string) (string, error) {
+func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	ls.RLock()
 	defer ls.RUnlock()
 	val, ok := ls.links[key]
+
 	if !ok {
 		return "", errors.New("get link from map failed")
 	}
+
 	return val, nil
 }
 
-func (ls *Links) SetLink(key string, link string) error {
+func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
 	ls.links[key] = link
 
 	if ls.producer != nil {
-		id := ls.Count() + 1
+		id := ls.Count(ctx) + 1
 
-		if err := ls.producer.Save(id, key, link); err != nil {
+		if err := ls.producer.Save(ctx, id, key, link); err != nil {
 			return fmt.Errorf("storage failed to save data into file: %w", err)
 		}
 	}
@@ -77,7 +82,7 @@ func (ls *Links) SetLink(key string, link string) error {
 	return nil
 }
 
-func (ls *Links) Count() int {
+func (ls *Links) Count(ctx context.Context) int {
 	return len(ls.links)
 }
 
@@ -89,4 +94,24 @@ func (ls *Links) Close() error {
 func (ls *Links) PingContext(ctx context.Context) error {
 	// for implementation support
 	return nil
+}
+
+func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error) {
+	ls.Lock()
+	defer ls.Unlock()
+
+	for _, linkDao := range linksDao {
+		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
+			return nil, fmt.Errorf("parse request URI failed: %w", err)
+		}
+
+		shortUrl := gen.GenKey(linkDao.OriginalURL)
+		linkDao.ShortURL = shortUrl
+		err := ls.SetLink(ctx, shortUrl, linkDao.OriginalURL)
+
+		if err != nil {
+			return nil, fmt.Errorf("set link failed: %w", err)
+		}
+	}
+	return linksDao, nil
 }

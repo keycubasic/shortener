@@ -2,6 +2,7 @@ package handler
 
 import (
 	"compress/gzip"
+	"context"
 	"io"
 	"strings"
 	"testing"
@@ -21,12 +22,12 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func connectDB(cfg Cfg) (app.DB, error) {
-	return storageinternal.NewLinks(cfg)
+func connectDB(ctx context.Context, cfg Cfg) (app.DB, error) {
+	return storageinternal.NewLinks(ctx, cfg)
 }
 
-func configureTestHandler(cfg Cfg) (*URLHandler, error) {
-	db, err := connectDB(cfg)
+func configureTestHandler(ctx context.Context, cfg Cfg) (*URLHandler, error) {
+	db, err := connectDB(ctx, cfg)
 
 	if err != nil {
 		log.Fatal(err.Error())
@@ -34,14 +35,14 @@ func configureTestHandler(cfg Cfg) (*URLHandler, error) {
 	defer db.Close()
 
 	app := app.NewApp(db)
-	h := newURLHandler(app, cfg)
+	h := newURLHandler(ctx, app, cfg)
 	return h, nil
 }
 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	h, err := configureTestHandler(cfg)
+	h, err := configureTestHandler(context.Background(), cfg)
 
 	if err != nil {
 		b.Fatal(err)
@@ -62,7 +63,7 @@ func BenchmarkJSONHandler(b *testing.B) {
 func TestRunServer(t *testing.T) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	h, err := configureTestHandler(cfg)
+	h, err := configureTestHandler(context.Background(), cfg)
 
 	if err != nil {
 		t.Fatal(err)

@@ -2,6 +2,7 @@ package loader
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 
@@ -10,8 +11,8 @@ import (
 )
 
 type database interface {
-	GetLink(key string) (string, error)
-	SetLink(key string, link string) error
+	GetLink(ctx context.Context, key string) (string, error)
+	SetLink(ctx context.Context, key string, link string) error
 }
 
 type Producer struct {
@@ -32,7 +33,7 @@ func NewProducer(fname string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) Save(id int, key, link string) error {
+func (p *Producer) Save(ctx context.Context, id int, key, link string) error {
 	linkDao := dao.NewLinkDao()
 	linkDao.UUID = id
 	linkDao.ShortURL = key
@@ -79,7 +80,7 @@ func NewConsumer(db database, fname string) (*Consumer, error) {
 	}, nil
 }
 
-func (c *Consumer) Load() error {
+func (c *Consumer) Load(ctx context.Context) error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
@@ -88,7 +89,7 @@ func (c *Consumer) Load() error {
 			return fmt.Errorf("сonsumer failed to unmarshal dao: %w", err)
 		}
 
-		if err := c.db.SetLink(linkDao.ShortURL, linkDao.OriginalURL); err != nil {
+		if err := c.db.SetLink(ctx, linkDao.ShortURL, linkDao.OriginalURL); err != nil {
 			return fmt.Errorf("сonsumer failed to load data into storage: %w", err)
 		}
 	}
