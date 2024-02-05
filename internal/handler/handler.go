@@ -7,9 +7,8 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/keycubasic/shortener/internal/dto"
-	_ "github.com/keycubasic/shortener/internal/middleware" // custom middleware replaced with chi
+	"github.com/keycubasic/shortener/internal/middleware"
 	json "github.com/mailru/easyjson"
 	log "github.com/sirupsen/logrus"
 )
@@ -177,7 +176,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Use(middleware.Compress(5, "gzip"))
+	r.Use(middleware.Gzip)
 	r.Get("/ping", h.getPingDB)
 	r.Get("/{id}", h.getOriginalURL)
 	r.Post("/", h.shortenURL)

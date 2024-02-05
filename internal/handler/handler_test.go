@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"strings"
@@ -51,6 +52,7 @@ func BenchmarkJSONHandler(b *testing.B) {
 	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", contentTypeJSON)
+	r.Header.Set("Accept-Encoding", "gzip")
 	w := httptest.NewRecorder()
 
 	for i := 0; i < b.N; i++ {
@@ -187,11 +189,18 @@ func TestRunServer(t *testing.T) {
 
 			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
 
+			if tt.expectedBody != "" && response.StatusCode < http.StatusMultipleChoices {
+				assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
+			}
+
 			if tt.expectedBody != "" {
 				defer response.Body.Close()
 				assert.NotNil(t, response.Body)
 
-				resBody, err := io.ReadAll(response.Body)
+				zr, err := gzip.NewReader(response.Body)
+				require.NoError(t, err)
+
+				resBody, err := io.ReadAll(zr)
 				require.NoError(t, err)
 
 				body := string(resBody)
