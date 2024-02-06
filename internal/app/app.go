@@ -7,6 +7,7 @@ import (
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/gen"
+	"github.com/keycubasic/shortener/internal/mapper"
 )
 
 //go:generate mockgen -source app.go -destination mock_storage.go -package mock database
@@ -47,9 +48,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) 
 	resLinksDto := dto.NewLinksDto()
 
 	for _, linkDto := range linksDto {
-		linkDao := dao.NewLinkDao()
-		linkDao.CorrelationID = linkDto.CorrelationID
-		linkDao.OriginalURL = linkDto.OriginalURL
+		linkDao := mapper.LinkDtoToLinkDao(linkDto)
 		reqLinksDao = append(reqLinksDao, linkDao)
 	}
 
@@ -60,10 +59,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) 
 	}
 
 	for _, linkDao := range resLinksDao {
-
-		linkDto := dto.NewLinkDto()
-		linkDto.CorrelationID = linkDao.CorrelationID
-		linkDto.ShortURL = linkDao.ShortURL
+		linkDto := mapper.LinkDaoToLinkDto(*linkDao)
 		resLinksDto = append(resLinksDto, *linkDto)
 	}
 
