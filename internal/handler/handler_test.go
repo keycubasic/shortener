@@ -12,7 +12,7 @@ import (
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storageinternal"
+	"github.com/keycubasic/shortener/internal/storage"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +23,7 @@ const (
 )
 
 func connectDB(ctx context.Context, cfg Cfg) (app.DB, error) {
-	return storageinternal.NewLinks(ctx, cfg)
+	return storage.NewLinks(ctx, cfg)
 }
 
 func configureTestHandler(ctx context.Context, cfg Cfg) (*URLHandler, error) {
@@ -77,84 +77,82 @@ func TestRunServer(t *testing.T) {
 		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
 
 	tests := []struct {
-		name         string
-		method       string
-		uri          string
-		contentType  string
-		body         string
-		expectedCode int
-		expectedBody string
+		name          string
+		method        string
+		uri           string
+		contentType   string
+		body          string
+		expectedCodes []int
+		expectedBody  string
 	}{
 		{
-			name:         "TestHandler1",
-			method:       http.MethodPost,
-			contentType:  contentTypeText,
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "parse \"\": empty url",
+			name:          "TestHandler1",
+			method:        http.MethodPost,
+			contentType:   contentTypeText,
+			expectedCodes: []int{http.StatusBadRequest},
+			expectedBody:  "parse \"\": empty url",
 		},
 		{
-			name:         "TestHandler2",
-			method:       http.MethodPost,
-			contentType:  contentTypeText,
-			body:         "1\n2",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "parse \"1\\n2\": net/url: invalid control character in URL",
+			name:          "TestHandler2",
+			method:        http.MethodPost,
+			contentType:   contentTypeText,
+			body:          "1\n2",
+			expectedCodes: []int{http.StatusBadRequest},
+			expectedBody:  "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
-			name:         "TestHandler3",
-			method:       http.MethodPost,
-			contentType:  contentTypeText,
-			body:         "1 2",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "parse \"1 2\": invalid URI for request",
+			name:          "TestHandler3",
+			method:        http.MethodPost,
+			contentType:   contentTypeText,
+			body:          "1 2",
+			expectedCodes: []int{http.StatusBadRequest},
+			expectedBody:  "parse \"1 2\": invalid URI for request",
 		},
 		{
-			name:         "TestHandler4",
-			method:       http.MethodPost,
-			contentType:  contentTypeText,
-			body:         "https://google.com",
-			expectedCode: http.StatusCreated,
-			expectedBody: "http://localhost:8080/mZmevP23",
+			name:          "TestHandler4",
+			method:        http.MethodPost,
+			contentType:   contentTypeText,
+			body:          "https://google.com",
+			expectedCodes: []int{http.StatusCreated, http.StatusConflict},
+			expectedBody:  "http://localhost:8080/mZmevP23",
 		},
 		{
-			name:         "TestHandler5",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
-			body:         "{\"url\":\"\"}",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "parse \"\": empty url",
+			name:          "TestHandler5",
+			method:        http.MethodPost,
+			contentType:   contentTypeJSON,
+			uri:           apiShortenURI,
+			body:          "{\"url\":\"\"}",
+			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:         "TestHandler6",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
-			body:         "{\"url\":\"1 2\"}",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "parse \"1 2\": invalid URI for request",
+			name:          "TestHandler6",
+			method:        http.MethodPost,
+			contentType:   contentTypeJSON,
+			uri:           apiShortenURI,
+			body:          "{\"url\":\"1 2\"}",
+			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:         "TestHandler7",
-			method:       http.MethodPost,
-			contentType:  contentTypeJSON,
-			uri:          apiShortenURI,
-			body:         "{\"url\":\"https://ya.ru\"}",
-			expectedCode: http.StatusCreated,
-			expectedBody: "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
+			name:          "TestHandler7",
+			method:        http.MethodPost,
+			contentType:   contentTypeJSON,
+			uri:           apiShortenURI,
+			body:          "{\"url\":\"https://ya.ru\"}",
+			expectedCodes: []int{http.StatusCreated, http.StatusConflict},
+			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:         "TestHandler8",
-			method:       http.MethodGet,
-			uri:          "/6YGS4ZUF",
-			expectedCode: http.StatusOK,
+			name:          "TestHandler8",
+			method:        http.MethodGet,
+			uri:           "/6YGS4ZUF",
+			expectedCodes: []int{http.StatusOK},
 		},
 		{
-			name:         "TestHandler9",
-			method:       http.MethodGet,
-			uri:          "/TgIlZU3m",
-			expectedCode: http.StatusBadRequest,
-			expectedBody: "target link not found",
+			name:          "TestHandler9",
+			method:        http.MethodGet,
+			uri:           "/TgIlZU3m",
+			expectedCodes: []int{http.StatusBadRequest},
+			expectedBody:  "target link not found",
 		},
 	}
 
@@ -187,9 +185,9 @@ func TestRunServer(t *testing.T) {
 				response = res
 			}
 
-			assert.Equal(t, tt.expectedCode, response.StatusCode, "The response code does not match what is expected")
+			assert.Contains(t, tt.expectedCodes, response.StatusCode, "The response code does not match what is expected")
 
-			if tt.expectedBody != "" && response.StatusCode < http.StatusMultipleChoices {
+			if tt.expectedBody != "" {
 				assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
 			}
 
@@ -205,7 +203,7 @@ func TestRunServer(t *testing.T) {
 
 				body := string(resBody)
 
-				if tt.contentType == contentTypeJSON && response.StatusCode < http.StatusMultipleChoices {
+				if tt.contentType == contentTypeJSON {
 					require.JSONEq(t, tt.expectedBody, body)
 				}
 

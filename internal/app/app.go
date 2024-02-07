@@ -14,6 +14,7 @@ import (
 type DB interface {
 	GetLink(ctx context.Context, key string) (string, error)
 	SetLink(ctx context.Context, key string, link string) error
+	GetShortLink(ctx context.Context, link string) (string, error)
 	Close() error
 	PingContext(ctx context.Context) error
 	CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error)
@@ -39,8 +40,15 @@ func (a *App) GetLink(ctx context.Context, id string) (string, error) {
 
 func (a *App) CreateShortLink(ctx context.Context, link string) (string, error) {
 	key := gen.GenKey(link)
-	a.db.SetLink(ctx, key, link)
+	if err := a.db.SetLink(ctx, key, link); err != nil {
+		return "", fmt.Errorf("create short link failed: %w", err)
+	}
+
 	return key, nil
+}
+
+func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
+	return a.db.GetShortLink(ctx, link)
 }
 
 func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error) {
@@ -55,7 +63,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) 
 	resLinksDao, err := a.db.CreateShortLinksBatch(ctx, reqLinksDao)
 
 	if err != nil {
-		return nil, fmt.Errorf("create short links batch fail: %w", err)
+		return nil, fmt.Errorf("create short links batch failed: %w", err)
 	}
 
 	for _, linkDao := range resLinksDao {

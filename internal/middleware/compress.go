@@ -29,9 +29,9 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < http.StatusMultipleChoices {
-		c.Header().Set("Content-Encoding", "gzip")
-	}
+	//if statusCode < http.StatusMultipleChoices {
+	c.Header().Set("Content-Encoding", "gzip")
+	//}
 
 	c.ResponseWriter.WriteHeader(statusCode)
 }
@@ -80,6 +80,7 @@ func Gzip(next http.Handler) http.Handler {
 		if supportsGzip {
 			cw := newCompressWriter(w)
 			ow = cw
+
 			defer cw.Close()
 		}
 
@@ -95,6 +96,7 @@ func Gzip(next http.Handler) http.Handler {
 			}
 
 			r.Body = cr
+
 			defer cr.Close()
 		}
 

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
+	"github.com/keycubasic/shortener/internal/storage"
 	json "github.com/mailru/easyjson"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,6 +24,7 @@ type application interface {
 	Ping(ctx context.Context) error
 	GetLink(ctx context.Context, key string) (string, error)
 	CreateShortLink(ctx context.Context, link string) (string, error)
+	GetShortLink(ctx context.Context, link string) (string, error)
 	CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error)
 }
 
@@ -80,14 +83,27 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 
 	key, err := h.app.CreateShortLink(context.Background(), link)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrUniqueViolation) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Add("Content-Type", contentTypeText)
-	w.WriteHeader(http.StatusCreated)
+	statusCode := http.StatusCreated
+
+	if errors.Is(err, storage.ErrUniqueViolation) {
+		key, err = h.app.GetShortLink(context.Background(), link)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+
+		statusCode = http.StatusConflict
+		// w.Header().Add("Content-Encoding", "gzip")
+	}
+
 	resBody := h.cfg.GetBaseURL() + "/" + key
+	w.Header().Add("Content-Type", contentTypeText)
+	w.WriteHeader(statusCode)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
 		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
@@ -115,9 +131,22 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	key, err := h.app.CreateShortLink(context.Background(), req.URL)
 
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrUniqueViolation) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	statusCode := http.StatusCreated
+
+	if errors.Is(err, storage.ErrUniqueViolation) {
+		key, err = h.app.GetShortLink(context.Background(), req.URL)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+
+		statusCode = http.StatusConflict
+		// w.Header().Add("Content-Encoding", "gzip")
 	}
 
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
@@ -129,7 +158,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", contentTypeJSON)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(statusCode)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
 		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)

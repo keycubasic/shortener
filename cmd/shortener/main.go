@@ -8,15 +8,15 @@ import (
 	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/handler"
 	"github.com/keycubasic/shortener/internal/storage"
-	"github.com/keycubasic/shortener/internal/storageinternal"
+	"github.com/keycubasic/shortener/internal/storage/postgre"
 	log "github.com/sirupsen/logrus"
 )
 
 func connectDB(ctx context.Context, cfg *config.Cfg) (app.DB, error) {
 	if cfg.GetDatabaseDSN() != "" {
-		return storage.NewLinks(ctx, cfg)
+		return postgre.NewLinks(ctx, cfg)
 	} else {
-		return storageinternal.NewLinks(ctx, cfg)
+		return storage.NewLinks(ctx, cfg)
 	}
 }
 
@@ -29,7 +29,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
 	defer db.Close()
 
 	app := app.NewApp(db)
