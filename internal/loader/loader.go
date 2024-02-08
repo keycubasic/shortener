@@ -10,7 +10,7 @@ import (
 	json "github.com/mailru/easyjson"
 )
 
-type database interface {
+type connection interface {
 	GetLink(ctx context.Context, key string) (string, error)
 	SetLink(ctx context.Context, key string, link string) error
 }
@@ -61,12 +61,12 @@ func (p *Producer) Close() error {
 }
 
 type Consumer struct {
-	db      database
+	conn    connection
 	file    *os.File
 	scanner *bufio.Scanner
 }
 
-func NewConsumer(db database, fname string) (*Consumer, error) {
+func NewConsumer(conn connection, fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
@@ -74,7 +74,7 @@ func NewConsumer(db database, fname string) (*Consumer, error) {
 	}
 
 	return &Consumer{
-		db:      db,
+		conn:    conn,
 		file:    file,
 		scanner: bufio.NewScanner(file),
 	}, nil
@@ -89,7 +89,7 @@ func (c *Consumer) Load(ctx context.Context) error {
 			return fmt.Errorf("сonsumer failed to unmarshal dao: %w", err)
 		}
 
-		if err := c.db.SetLink(ctx, linkDao.ShortURL, linkDao.OriginalURL); err != nil {
+		if err := c.conn.SetLink(ctx, linkDao.ShortURL, linkDao.OriginalURL); err != nil {
 			return fmt.Errorf("сonsumer failed to load data into storage: %w", err)
 		}
 	}

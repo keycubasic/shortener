@@ -15,19 +15,19 @@ import (
 
 var ErrUniqueViolation = errors.New("unique violation")
 
-type Cfg interface {
+type configuration interface {
 	GetBaseURL() string
 	GetFilePath() string
 }
 
 type Links struct {
 	sync.RWMutex
-	cfg      Cfg
+	cfg      configuration
 	links    map[string]string
 	producer *loader.Producer
 }
 
-func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
+func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	ls := &Links{
 		cfg:   cfg,
 		links: make(map[string]string),
@@ -129,6 +129,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 
 		shortURL := gen.GenKey(linkDao.OriginalURL)
 		linkDao.ShortURL = ls.cfg.GetBaseURL() + "/" + shortURL
+
 		if err := ls.SetLink(ctx, shortURL, linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("set link failed: %w", err)
 		}

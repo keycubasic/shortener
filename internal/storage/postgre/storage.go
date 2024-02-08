@@ -16,20 +16,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Cfg interface {
+type configuration interface {
 	GetBaseURL() string
 	GetDatabaseDSN() string
 }
 
 type Links struct {
 	sync.RWMutex
-	cfg Cfg
-	db  *sql.DB
+	cfg  configuration
+	conn *sql.DB
 }
 
-func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
+func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
-	db, err := sql.Open("pgx", cfg.GetDatabaseDSN())
+	conn, err := sql.Open("pgx", cfg.GetDatabaseDSN())
 
 	if err != nil {
 		return nil, fmt.Errorf("database open connection failed: %w", err)
@@ -37,7 +37,7 @@ func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 
 	log.Infoln("Database connected...")
 
-	tx, err := db.Begin()
+	tx, err := conn.Begin()
 
 	if err != nil {
 		return nil, fmt.Errorf("begin transaction failed: %w", err)
@@ -83,15 +83,15 @@ func NewLinks(ctx context.Context, cfg Cfg) (*Links, error) {
 
 	tx.Commit()
 
-	return &Links{cfg: cfg, db: db}, nil
+	return &Links{cfg: cfg, conn: conn}, nil
 }
 
 func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
-	return ls.db.BeginTx(ctx, nil)
+	return ls.conn.BeginTx(ctx, nil)
 }
 
 func (ls *Links) GetLinkUnlocked(ctx context.Context, key string) (string, error) {
-	row := ls.db.QueryRowContext(ctx, `
+	row := ls.conn.QueryRowContext(ctx, `
 		SELECT original_url FROM links WHERE short_url = $1
 		`, key)
 	var val string
@@ -116,7 +116,7 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
 
-	if _, err := ls.db.ExecContext(ctx, `
+	if _, err := ls.conn.ExecContext(ctx, `
 			INSERT INTO links (short_url, original_url) VALUES ($1,$2)
 			`, key, link); err != nil {
 
@@ -133,7 +133,10 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 }
 
 func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) {
-	row := ls.db.QueryRowContext(ctx, `
+	ls.RLock()
+	defer ls.RUnlock()
+
+	row := ls.conn.QueryRowContext(ctx, `
 		SELECT short_url FROM links WHERE original_url = $1
 		`, link)
 	var val string
@@ -152,7 +155,7 @@ func (ls *Links) Count(ctx context.Context) (int, error) {
 	ls.RLock()
 	defer ls.RUnlock()
 
-	row := ls.db.QueryRowContext(ctx, `
+	row := ls.conn.QueryRowContext(ctx, `
 		SELECT COUNT(1) FROM links
 		`)
 	var cnt int
@@ -167,18 +170,18 @@ func (ls *Links) Count(ctx context.Context) (int, error) {
 }
 
 func (ls *Links) Close() error {
-	return ls.db.Close()
+	return ls.conn.Close()
 }
 
 func (ls *Links) PingContext(ctx context.Context) error {
-	return ls.db.PingContext(ctx)
+	return ls.conn.PingContext(ctx)
 }
 
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
-	tx, err := ls.db.Begin()
+	tx, err := ls.conn.Begin()
 
 	if err != nil {
 		return nil, fmt.Errorf("begin transaction failed: %w", err)

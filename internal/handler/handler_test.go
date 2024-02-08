@@ -22,19 +22,19 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func connectDB(ctx context.Context, cfg Cfg) (app.DB, error) {
+func connectDB(ctx context.Context, cfg configuration) (app.Connection, error) {
 	return storage.NewLinks(ctx, cfg)
 }
 
-func configureTestHandler(ctx context.Context, cfg Cfg) (*URLHandler, error) {
-	db, err := connectDB(ctx, cfg)
+func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, error) {
+	conn, err := connectDB(ctx, cfg)
 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	app := app.NewApp(db)
+	app := app.NewApp(conn)
 	h := newURLHandler(ctx, app, cfg)
 	return h, nil
 }

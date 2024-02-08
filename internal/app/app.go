@@ -11,7 +11,7 @@ import (
 )
 
 //go:generate mockgen -source app.go -destination mock_storage.go -package mock database
-type DB interface {
+type Connection interface {
 	GetLink(ctx context.Context, key string) (string, error)
 	SetLink(ctx context.Context, key string, link string) error
 	GetShortLink(ctx context.Context, link string) (string, error)
@@ -21,26 +21,27 @@ type DB interface {
 }
 
 type App struct {
-	db DB
+	conn Connection
 }
 
-func NewApp(db DB) *App {
+func NewApp(conn Connection) *App {
 	return &App{
-		db: db,
+		conn: conn,
 	}
 }
 
 func (a *App) Ping(ctx context.Context) error {
-	return a.db.PingContext(ctx)
+	return a.conn.PingContext(ctx)
 }
 
 func (a *App) GetLink(ctx context.Context, id string) (string, error) {
-	return a.db.GetLink(ctx, id)
+	return a.conn.GetLink(ctx, id)
 }
 
 func (a *App) CreateShortLink(ctx context.Context, link string) (string, error) {
 	key := gen.GenKey(link)
-	if err := a.db.SetLink(ctx, key, link); err != nil {
+
+	if err := a.conn.SetLink(ctx, key, link); err != nil {
 		return "", fmt.Errorf("create short link failed: %w", err)
 	}
 
@@ -48,7 +49,7 @@ func (a *App) CreateShortLink(ctx context.Context, link string) (string, error) 
 }
 
 func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
-	return a.db.GetShortLink(ctx, link)
+	return a.conn.GetShortLink(ctx, link)
 }
 
 func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error) {
@@ -60,7 +61,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) 
 		reqLinksDao = append(reqLinksDao, linkDao)
 	}
 
-	resLinksDao, err := a.db.CreateShortLinksBatch(ctx, reqLinksDao)
+	resLinksDao, err := a.conn.CreateShortLinksBatch(ctx, reqLinksDao)
 
 	if err != nil {
 		return nil, fmt.Errorf("create short links batch failed: %w", err)

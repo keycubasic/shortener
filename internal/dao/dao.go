@@ -4,9 +4,9 @@ package dao
 type LinksDao []*LinkDao
 type LinkDao struct {
 	UUID          int    `json:"uuid"`
-	ShortURL      string `json:"short_url,omitempty"`
-	OriginalURL   string `json:"original_url,omitempty"`
-	CorrelationID string `json:"correlation_id,omitempty"`
+	ShortURL      string `json:"short_url"`
+	OriginalURL   string `json:"original_url"`
+	CorrelationID string
 }
 
 func NewLinksDao() LinksDao {

@@ -28,7 +28,7 @@ type application interface {
 	CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error)
 }
 
-type Cfg interface {
+type configuration interface {
 	GetAddress() string
 	GetBaseURL() string
 	GetFilePath() string
@@ -37,10 +37,10 @@ type Cfg interface {
 
 type URLHandler struct {
 	app application
-	cfg Cfg
+	cfg configuration
 }
 
-func newURLHandler(ctx context.Context, app application, cfg Cfg) *URLHandler {
+func newURLHandler(ctx context.Context, app application, cfg configuration) *URLHandler {
 	return &URLHandler{app: app, cfg: cfg}
 }
 
@@ -98,7 +98,6 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 		}
 
 		statusCode = http.StatusConflict
-		// w.Header().Add("Content-Encoding", "gzip")
 	}
 
 	resBody := h.cfg.GetBaseURL() + "/" + key
@@ -146,7 +145,6 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		}
 
 		statusCode = http.StatusConflict
-		// w.Header().Add("Content-Encoding", "gzip")
 	}
 
 	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
@@ -214,7 +212,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
-func RunServer(ctx context.Context, app application, cfg Cfg) {
+func RunServer(ctx context.Context, app application, cfg configuration) {
 	h := newURLHandler(ctx, app, cfg)
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s",

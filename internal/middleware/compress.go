@@ -29,10 +29,7 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	//if statusCode < http.StatusMultipleChoices {
 	c.Header().Set("Content-Encoding", "gzip")
-	//}
-
 	c.ResponseWriter.WriteHeader(statusCode)
 }
 
