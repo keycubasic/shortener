@@ -6,10 +6,15 @@ import (
 	"regexp"
 )
 
+var re *regexp.Regexp
+
+func init() {
+	re = regexp.MustCompile("[+/=_]")
+}
+
 func GenKey(link string) string {
 	md5checksum := md5.Sum([]byte(link))
 	base64encoded := base64.URLEncoding.EncodeToString([]byte(md5checksum[:]))
-	re := regexp.MustCompile("[+/=_]")
 	base64encoded = re.ReplaceAllString(base64encoded, "")
 	key := base64encoded[:8]
 	return key

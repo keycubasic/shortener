@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-chi/chi"
 	"github.com/keycubasic/shortener/internal/dto"
@@ -20,6 +21,12 @@ const (
 	contentTypeText = "text/plain; charset=utf-8"
 )
 
+type configuration interface {
+	GetAddress() string
+	GetBaseURL() string
+	GetFilePath() string
+	GetDatabaseDSN() string
+}
 type application interface {
 	Ping(ctx context.Context) error
 	GetLink(ctx context.Context, key string) (string, error)
@@ -28,24 +35,17 @@ type application interface {
 	CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error)
 }
 
-type configuration interface {
-	GetAddress() string
-	GetBaseURL() string
-	GetFilePath() string
-	GetDatabaseDSN() string
-}
-
 type URLHandler struct {
-	app application
 	cfg configuration
+	app application
 }
 
-func newURLHandler(ctx context.Context, app application, cfg configuration) *URLHandler {
-	return &URLHandler{app: app, cfg: cfg}
+func newURLHandler(cfg configuration, app application) *URLHandler {
+	return &URLHandler{cfg: cfg, app: app}
 }
 
-func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
-	if err := h.app.Ping(context.Background()); err != nil {
+func (h *URLHandler) pingDB(w http.ResponseWriter, r *http.Request) {
+	if err := h.app.Ping(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -55,7 +55,7 @@ func (h *URLHandler) getPingDB(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	link, err := h.app.GetLink(context.Background(), id)
+	link, err := h.app.GetLink(r.Context(), id)
 
 	if err != nil {
 		http.Error(w, "target link not found", http.StatusBadRequest)
@@ -81,7 +81,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := h.app.CreateShortLink(context.Background(), link)
+	key, err := h.app.CreateShortLink(r.Context(), link)
 
 	if err != nil && !errors.Is(err, storage.ErrUniqueViolation) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -91,16 +91,17 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusCreated
 
 	if errors.Is(err, storage.ErrUniqueViolation) {
-		key, err = h.app.GetShortLink(context.Background(), link)
+		key, err = h.app.GetShortLink(r.Context(), link)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		statusCode = http.StatusConflict
 	}
 
-	resBody := h.cfg.GetBaseURL() + "/" + key
+	resBody := strings.Join([]string{h.cfg.GetBaseURL(), key}, "/")
 	w.Header().Add("Content-Type", contentTypeText)
 	w.WriteHeader(statusCode)
 
@@ -128,7 +129,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := h.app.CreateShortLink(context.Background(), req.URL)
+	key, err := h.app.CreateShortLink(r.Context(), req.URL)
 
 	if err != nil && !errors.Is(err, storage.ErrUniqueViolation) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -138,7 +139,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusCreated
 
 	if errors.Is(err, storage.ErrUniqueViolation) {
-		key, err = h.app.GetShortLink(context.Background(), req.URL)
+		key, err = h.app.GetShortLink(r.Context(), req.URL)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -147,7 +148,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusConflict
 	}
 
-	res := dto.NewResponse(h.cfg.GetBaseURL() + "/" + key)
+	res := dto.NewResponse(strings.Join([]string{h.cfg.GetBaseURL(), key}, "/"))
 	resBody, err := json.Marshal(res)
 
 	if err != nil {
@@ -165,7 +166,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request) {
-	reqLinksDto := dto.NewLinksDto()
+	reqLinksDto := make(dto.LinksDto, 0)
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -177,7 +178,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resLinksDto, err := h.app.CreateShortLinksBatch(context.Background(), reqLinksDto)
+	resLinksDto, err := h.app.CreateShortLinksBatch(r.Context(), reqLinksDto)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -204,7 +205,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Gzip)
-	r.Get("/ping", h.getPingDB)
+	r.Get("/ping", h.pingDB)
 	r.Get("/{id}", h.getOriginalURL)
 	r.Post("/", h.shortenURL)
 	r.Post("/api/shorten", h.shortenURLJSON)
@@ -212,8 +213,8 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
-func RunServer(ctx context.Context, app application, cfg configuration) {
-	h := newURLHandler(ctx, app, cfg)
+func RunServer(ctx context.Context, cfg configuration, app application) {
+	h := newURLHandler(cfg, app)
 	r := h.getRouter()
 	log.Infof("Server listening address %s with base URL %s",
 		cfg.GetAddress(), cfg.GetBaseURL())

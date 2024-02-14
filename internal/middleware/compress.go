@@ -46,7 +46,7 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	zr, err := gzip.NewReader(r)
 
 	if err != nil {
-		return nil, fmt.Errorf("compressor failed to create reader: %w", err)
+		return nil, fmt.Errorf("compressor create reader: %w", err)
 	}
 
 	return &compressReader{
@@ -61,7 +61,7 @@ func (c *compressReader) Read(p []byte) (n int, err error) {
 
 func (c *compressReader) Close() error {
 	if err := c.ReadCloser.Close(); err != nil {
-		return fmt.Errorf("compressor failed to close reader: %w", err)
+		return fmt.Errorf("compressor close reader: %w", err)
 	}
 
 	return c.zr.Close()

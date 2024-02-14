@@ -10,8 +10,15 @@ import (
 	"github.com/keycubasic/shortener/internal/mapper"
 )
 
+type Configuration interface {
+	GetAddress() string
+	GetBaseURL() string
+	GetFilePath() string
+	GetDatabaseDSN() string
+}
+
 //go:generate mockgen -source app.go -destination mock_storage.go -package mock database
-type Connection interface {
+type Database interface {
 	GetLink(ctx context.Context, key string) (string, error)
 	SetLink(ctx context.Context, key string, link string) error
 	GetShortLink(ctx context.Context, link string) (string, error)
@@ -21,11 +28,13 @@ type Connection interface {
 }
 
 type App struct {
-	conn Connection
+	Cfg  Configuration
+	conn Database
 }
 
-func NewApp(conn Connection) *App {
+func NewApp(cfg Configuration, conn Database) *App {
 	return &App{
+		Cfg:  cfg,
 		conn: conn,
 	}
 }
@@ -42,7 +51,7 @@ func (a *App) CreateShortLink(ctx context.Context, link string) (string, error) 
 	key := gen.GenKey(link)
 
 	if err := a.conn.SetLink(ctx, key, link); err != nil {
-		return "", fmt.Errorf("create short link failed: %w", err)
+		return "", fmt.Errorf("app create short link: %w", err)
 	}
 
 	return key, nil
@@ -53,8 +62,9 @@ func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
 }
 
 func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error) {
-	reqLinksDao := dao.NewLinksDao()
-	resLinksDto := dto.NewLinksDto()
+	capacity := len(linksDto)
+	reqLinksDao := make(dao.LinksDao, 0, capacity)
+	resLinksDto := make(dto.LinksDto, 0, capacity)
 
 	for _, linkDto := range linksDto {
 		linkDao := mapper.LinkDtoToLinkDao(linkDto)
@@ -64,11 +74,11 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) 
 	resLinksDao, err := a.conn.CreateShortLinksBatch(ctx, reqLinksDao)
 
 	if err != nil {
-		return nil, fmt.Errorf("create short links batch failed: %w", err)
+		return nil, fmt.Errorf("app create short links batch: %w", err)
 	}
 
 	for _, linkDao := range resLinksDao {
-		linkDto := mapper.LinkDaoToLinkDto(*linkDao)
+		linkDto := mapper.LinkDaoToLinkDto(*linkDao, a.Cfg.GetBaseURL())
 		resLinksDto = append(resLinksDto, *linkDto)
 	}
 

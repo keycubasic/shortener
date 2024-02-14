@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/keycubasic/shortener/internal/dao"
@@ -13,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ErrUniqueViolation = errors.New("unique violation")
+var ErrUniqueViolation = errors.New("storage unique violation")
 
 type configuration interface {
 	GetBaseURL() string
@@ -37,22 +38,22 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
 
 		if err != nil {
-			return nil, fmt.Errorf("storage failed to create consumer: %w", err)
+			return nil, fmt.Errorf("storage create consumer: %w", err)
 		}
 
 		if err := consumer.Load(ctx); err != nil {
-			return nil, fmt.Errorf("storage failed to load data from file: %w", err)
+			return nil, fmt.Errorf("storage load data from file: %w", err)
 		}
 
 		if err := consumer.Close(); err != nil {
-			return nil, fmt.Errorf("storage failed to close consumer: %w", err)
+			return nil, fmt.Errorf("storage close consumer: %w", err)
 		}
 
-		log.Infoln("Records count preloaded from disk storage:", ls.Count(ctx))
+		log.Infoln("Records count preloaded from disk storage:", ls.count())
 
 		// Init producer
 		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
-			return nil, fmt.Errorf("storage failed to create producer: %w", err)
+			return nil, fmt.Errorf("storage create producer: %w", err)
 		}
 	}
 
@@ -68,7 +69,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	val, ok := ls.links[key]
 
 	if !ok {
-		return "", errors.New("get link from map failed")
+		return "", fmt.Errorf("storage get link from map")
 	}
 
 	return val, nil
@@ -79,16 +80,16 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 	defer ls.Unlock()
 
 	if _, err := ls.GetShortLink(ctx, link); err == nil {
-		return fmt.Errorf("shortlink already exists: %w", ErrUniqueViolation)
+		return fmt.Errorf("storage shortlink already exists: %w", ErrUniqueViolation)
 	}
 
 	ls.links[key] = link
 
 	if ls.producer != nil {
-		id := ls.Count(ctx) + 1
+		id := ls.count() + 1
 
 		if err := ls.producer.Save(ctx, id, key, link); err != nil {
-			return fmt.Errorf("storage failed to save data into file: %w", err)
+			return fmt.Errorf("storage save data into file: %w", err)
 		}
 	}
 
@@ -101,10 +102,10 @@ func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) 
 			return k, nil
 		}
 	}
-	return "", fmt.Errorf("shortlink not found")
+	return "", fmt.Errorf("storage shortlink not found")
 }
 
-func (ls *Links) Count(ctx context.Context) int {
+func (ls *Links) count() int {
 	return len(ls.links)
 }
 
@@ -124,14 +125,14 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 
 	for _, linkDao := range linksDao {
 		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
-			return nil, fmt.Errorf("parse request URI failed: %w", err)
+			return nil, fmt.Errorf("storage parse request URI: %w", err)
 		}
 
 		shortURL := gen.GenKey(linkDao.OriginalURL)
-		linkDao.ShortURL = ls.cfg.GetBaseURL() + "/" + shortURL
+		linkDao.ShortURL = strings.Join([]string{ls.cfg.GetBaseURL(), shortURL}, "/")
 
 		if err := ls.SetLink(ctx, shortURL, linkDao.OriginalURL); err != nil {
-			return nil, fmt.Errorf("set link failed: %w", err)
+			return nil, fmt.Errorf("storage set link: %w", err)
 		}
 	}
 	return linksDao, nil

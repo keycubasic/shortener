@@ -10,10 +10,6 @@ type LinkDto struct {
 	ShortURL      string `json:"short_url,omitempty"`
 }
 
-func NewLinksDto() LinksDto {
-	return []LinkDto{}
-}
-
 func NewLinkDto() *LinkDto {
 	return new(LinkDto)
 }

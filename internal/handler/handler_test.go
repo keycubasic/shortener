@@ -22,7 +22,7 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func connectDB(ctx context.Context, cfg configuration) (app.Connection, error) {
+func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
 	return storage.NewLinks(ctx, cfg)
 }
 
@@ -34,8 +34,8 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 	}
 	defer conn.Close()
 
-	app := app.NewApp(conn)
-	h := newURLHandler(ctx, app, cfg)
+	app := app.NewApp(cfg, conn)
+	h := newURLHandler(cfg, app)
 	return h, nil
 }
 
@@ -143,12 +143,21 @@ func TestRunServer(t *testing.T) {
 		},
 		{
 			name:          "TestHandler8",
+			method:        http.MethodPost,
+			contentType:   contentTypeJSON,
+			uri:           apiShortenURI,
+			body:          "{\"url\":\"https://ya.ru\"}",
+			expectedCodes: []int{http.StatusCreated, http.StatusConflict},
+			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
+		},
+		{
+			name:          "TestHandler9",
 			method:        http.MethodGet,
 			uri:           "/6YGS4ZUF",
 			expectedCodes: []int{http.StatusOK},
 		},
 		{
-			name:          "TestHandler9",
+			name:          "TestHandler10",
 			method:        http.MethodGet,
 			uri:           "/TgIlZU3m",
 			expectedCodes: []int{http.StatusBadRequest},

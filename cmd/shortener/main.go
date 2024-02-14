@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func connectDB(ctx context.Context, cfg *config.Cfg) (app.Connection, error) {
+func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 	if cfg.GetDatabaseDSN() != "" {
 		return postgre.NewLinks(ctx, cfg)
 	} else {
@@ -31,6 +31,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	app := app.NewApp(conn)
-	handler.RunServer(ctx, app, cfg)
+	app := app.NewApp(cfg, conn)
+	handler.RunServer(ctx, cfg, app)
 }
