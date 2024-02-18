@@ -6,9 +6,10 @@ import (
 )
 
 type Cfg struct {
-	address  string
-	baseURL  string
-	filePath string
+	address     string
+	baseURL     string
+	filePath    string
+	databaseDSN string
 }
 
 func NewCfg() *Cfg {
@@ -39,6 +40,14 @@ func (c *Cfg) SetFilePath(filePath string) {
 	c.filePath = filePath
 }
 
+func (c *Cfg) GetDatabaseDSN() string {
+	return c.databaseDSN
+}
+
+func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
+	c.filePath = databaseDSN
+}
+
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
@@ -50,6 +59,10 @@ func (c *Cfg) ParseCfg() {
 
 	if flag.Lookup("f") == nil {
 		flag.StringVar(&c.filePath, "f", "/tmp/short-url-db.json", "Path to disk storage")
+	}
+
+	if flag.Lookup("d") == nil {
+		flag.StringVar(&c.databaseDSN, "d", "", "Database connection address")
 	}
 
 	flag.Parse()
@@ -64,5 +77,9 @@ func (c *Cfg) ParseCfg() {
 
 	if f := os.Getenv("FILE_STORAGE_PATH"); f != "" {
 		c.filePath = f
+	}
+
+	if d := os.Getenv("DATABASE_DSN"); d != "" {
+		c.databaseDSN = d
 	}
 }

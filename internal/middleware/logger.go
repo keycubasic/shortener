@@ -13,6 +13,7 @@ func Logger(next http.Handler) http.Handler {
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 		t := time.Now()
+
 		defer func() {
 			log.WithFields(log.Fields{
 				"remote": r.RemoteAddr,

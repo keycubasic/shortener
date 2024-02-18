@@ -1,39 +1,86 @@
 package app
 
 import (
-	"crypto/md5"
-	"encoding/base64"
-	"regexp"
+	"context"
+	"fmt"
+
+	"github.com/keycubasic/shortener/internal/dao"
+	"github.com/keycubasic/shortener/internal/dto"
+	"github.com/keycubasic/shortener/internal/gen"
+	"github.com/keycubasic/shortener/internal/mapper"
 )
 
-type database interface {
-	GetLink(key string) (string, bool)
-	SetLink(key string, link string) error
+type Configuration interface {
+	GetAddress() string
+	GetBaseURL() string
+	GetFilePath() string
+	GetDatabaseDSN() string
+}
+
+//go:generate mockgen -source app.go -destination mock_storage.go -package mock database
+type Database interface {
+	GetLink(ctx context.Context, key string) (string, error)
+	SetLink(ctx context.Context, key string, link string) error
+	GetShortLink(ctx context.Context, link string) (string, error)
+	Close() error
+	PingContext(ctx context.Context) error
+	CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error)
 }
 
 type App struct {
-	db database
+	Cfg  Configuration
+	conn Database
 }
 
-func NewApp(db database) *App {
-	return &App{db: db}
+func NewApp(cfg Configuration, conn Database) *App {
+	return &App{
+		Cfg:  cfg,
+		conn: conn,
+	}
 }
 
-func (a *App) GetLink(id string) (string, bool) {
-	return a.db.GetLink(id)
+func (a *App) Ping(ctx context.Context) error {
+	return a.conn.PingContext(ctx)
 }
 
-func (a *App) CreateShortLink(link string) (string, error) {
-	key := genKey(link)
-	a.db.SetLink(key, link)
+func (a *App) GetLink(ctx context.Context, id string) (string, error) {
+	return a.conn.GetLink(ctx, id)
+}
+
+func (a *App) CreateShortLink(ctx context.Context, link string) (string, error) {
+	key := gen.GenKey(link)
+
+	if err := a.conn.SetLink(ctx, key, link); err != nil {
+		return "", fmt.Errorf("app create short link: %w", err)
+	}
+
 	return key, nil
 }
 
-func genKey(link string) string {
-	md5checksum := md5.Sum([]byte(link))
-	base64encoded := base64.URLEncoding.EncodeToString([]byte(md5checksum[:]))
-	re := regexp.MustCompile("[+/=_]")
-	base64encoded = re.ReplaceAllString(base64encoded, "")
-	key := base64encoded[:8]
-	return key
+func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
+	return a.conn.GetShortLink(ctx, link)
+}
+
+func (a *App) CreateShortLinksBatch(ctx context.Context, linksDto dto.LinksDto) (dto.LinksDto, error) {
+	capacity := len(linksDto)
+	reqLinksDao := make(dao.LinksDao, 0, capacity)
+	resLinksDto := make(dto.LinksDto, 0, capacity)
+
+	for _, linkDto := range linksDto {
+		linkDao := mapper.LinkDtoToLinkDao(linkDto)
+		reqLinksDao = append(reqLinksDao, linkDao)
+	}
+
+	resLinksDao, err := a.conn.CreateShortLinksBatch(ctx, reqLinksDao)
+
+	if err != nil {
+		return nil, fmt.Errorf("app create short links batch: %w", err)
+	}
+
+	for _, linkDao := range resLinksDao {
+		linkDto := mapper.LinkDaoToLinkDto(*linkDao, a.Cfg.GetBaseURL())
+		resLinksDto = append(resLinksDto, *linkDto)
+	}
+
+	return resLinksDto, nil
 }

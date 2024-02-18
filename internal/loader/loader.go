@@ -2,6 +2,7 @@ package loader
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 
@@ -9,9 +10,9 @@ import (
 	json "github.com/mailru/easyjson"
 )
 
-type database interface {
-	GetLink(key string) (string, bool)
-	SetLink(key string, link string) error
+type connection interface {
+	GetLink(ctx context.Context, key string) (string, error)
+	SetLink(ctx context.Context, key string, link string) error
 }
 
 type Producer struct {
@@ -23,7 +24,7 @@ func NewProducer(fname string) (*Producer, error) {
 	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 
 	if err != nil {
-		return nil, fmt.Errorf("producer failed to open file: %w", err)
+		return nil, fmt.Errorf("loader producer open file: %w", err)
 	}
 
 	return &Producer{
@@ -32,7 +33,7 @@ func NewProducer(fname string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) Save(id int, key, link string) error {
+func (p *Producer) Save(ctx context.Context, id int, key, link string) error {
 	linkDao := dao.NewLinkDao()
 	linkDao.UUID = id
 	linkDao.ShortURL = key
@@ -41,15 +42,15 @@ func (p *Producer) Save(id int, key, link string) error {
 	data, err := json.Marshal(linkDao)
 
 	if err != nil {
-		return fmt.Errorf("producer failed to marshal dao: %w", err)
+		return fmt.Errorf("loader producer marshal dao: %w", err)
 	}
 
 	if _, err := p.writer.Write(data); err != nil {
-		return fmt.Errorf("producer failed to write data: %w", err)
+		return fmt.Errorf("loader producer write data: %w", err)
 	}
 
 	if err := p.writer.WriteByte('\n'); err != nil {
-		return fmt.Errorf("producer failed to write a line break: %w", err)
+		return fmt.Errorf("loader producer write a line break: %w", err)
 	}
 
 	return p.writer.Flush()
@@ -60,36 +61,36 @@ func (p *Producer) Close() error {
 }
 
 type Consumer struct {
-	db      database
+	conn    connection
 	file    *os.File
 	scanner *bufio.Scanner
 }
 
-func NewConsumer(db database, fname string) (*Consumer, error) {
+func NewConsumer(conn connection, fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
-		return nil, fmt.Errorf("сonsumer failed to open file: %w", err)
+		return nil, fmt.Errorf("loader сonsumer open file: %w", err)
 	}
 
 	return &Consumer{
-		db:      db,
+		conn:    conn,
 		file:    file,
 		scanner: bufio.NewScanner(file),
 	}, nil
 }
 
-func (c *Consumer) Load() error {
+func (c *Consumer) Load(ctx context.Context) error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
 
 		if err != nil {
-			return fmt.Errorf("сonsumer failed to unmarshal dao: %w", err)
+			return fmt.Errorf("loader сonsumer unmarshal dao: %w", err)
 		}
 
-		if err := c.db.SetLink(linkDao.ShortURL, linkDao.OriginalURL); err != nil {
-			return fmt.Errorf("сonsumer failed to load data into storage: %w", err)
+		if err := c.conn.SetLink(ctx, linkDao.ShortURL, linkDao.OriginalURL); err != nil {
+			return fmt.Errorf("loader сonsumer load data into storage: %w", err)
 		}
 	}
 	return nil
