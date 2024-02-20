@@ -11,10 +11,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-type Claims struct {
-	UserID int
-}
-
 type JWTAuth struct {
 	alg             jwa.SignatureAlgorithm
 	signKey         interface{} // private-key
@@ -78,7 +74,7 @@ func Verify(ja *JWTAuth, findTokenFns ...func(r *http.Request) string) func(http
 		hfn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			token, _ := VerifyRequest(ja, r, findTokenFns...)
-			ctx = NewContext(ctx, token, nil)
+			ctx = NewContext(ctx, token, nil) // ignored err
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(hfn)

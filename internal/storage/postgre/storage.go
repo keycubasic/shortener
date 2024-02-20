@@ -179,7 +179,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	if _, err := ls.db.NamedExecContext(ctx, `
 	INSERT INTO links (user_id, short_url, original_url) VALUES (:user_id, :short_url, :original_url)
 	`, linksDao); err != nil {
-		return nil, fmt.Errorf("postgre storage insert into links: %w", err)
+		return nil, fmt.Errorf("postgre storage insert into links batch: %w", err)
 	}
 
 	return linksDao, nil
@@ -202,10 +202,11 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 	`, userID)
 
 	if err != nil {
-		return nil, fmt.Errorf("postgre storage get user URLs: %w", err)
+		return nil, fmt.Errorf("postgre storage select user URLs from database: %w", err)
 	}
 
 	var shortURL, originalURL string
+
 	for rows.Next() {
 		err := rows.Scan(&shortURL, &originalURL)
 
