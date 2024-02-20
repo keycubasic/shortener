@@ -125,7 +125,7 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 
-	userID, err := h.getUserId(w, r)
+	userID, err := h.getUserID(w, r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -177,7 +177,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.getUserId(w, r)
+	userID, err := h.getUserID(w, r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -238,7 +238,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.getUserId(w, r)
+	userID, err := h.getUserID(w, r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -280,7 +280,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (h *URLHandler) getUserId(w http.ResponseWriter, r *http.Request) (userID int, err error) {
+func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
 	ctx := r.Context()
 	token, claims, err := auth.FromContext(ctx)
 
