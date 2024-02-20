@@ -122,19 +122,30 @@ func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(out *jwriter
 	out.RawByte('{')
 	first := true
 	_ = first
-	{
+	if in.CorrelationID != "" {
 		const prefix string = ",\"correlation_id\":"
+		first = false
 		out.RawString(prefix[1:])
 		out.String(string(in.CorrelationID))
 	}
 	if in.OriginalURL != "" {
 		const prefix string = ",\"original_url\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(in.OriginalURL))
 	}
 	if in.ShortURL != "" {
 		const prefix string = ",\"short_url\":"
-		out.RawString(prefix)
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
 		out.String(string(in.ShortURL))
 	}
 	out.RawByte('}')

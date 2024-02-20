@@ -75,7 +75,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 
-func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
+func (ls *Links) SetLink(ctx context.Context, userID int, key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -119,7 +119,7 @@ func (ls *Links) PingContext(ctx context.Context) error {
 	return nil
 }
 
-func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error) {
+func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	ls.Lock()
 	defer ls.Unlock()
 
@@ -131,9 +131,26 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 		shortURL := gen.GenKey(linkDao.OriginalURL)
 		linkDao.ShortURL = strings.Join([]string{ls.cfg.GetBaseURL(), shortURL}, "/")
 
-		if err := ls.SetLink(ctx, shortURL, linkDao.OriginalURL); err != nil {
+		if err := ls.SetLink(ctx, 0, shortURL, linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("storage set link: %w", err)
 		}
+	}
+	return linksDao, nil
+}
+
+func (ls *Links) AddUser(ctx context.Context) (int, error) {
+	// for implementation support
+	return 1, nil
+}
+
+func (ls *Links) GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, error) {
+	// for implementation support
+	linksDao := make([]*dao.LinkDao, 0)
+	for k, v := range ls.links {
+		linkDao := dao.NewLinkDao()
+		linkDao.ShortURL = k
+		linkDao.OriginalURL = v
+		linksDao = append(linksDao, linkDao)
 	}
 	return linksDao, nil
 }

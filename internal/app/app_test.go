@@ -32,15 +32,15 @@ func TestCreateShortLink(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := config.NewCfg()
-	conn, err := storage.NewLinks(ctx, cfg)
+	db, err := storage.NewLinks(ctx, cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	app := NewApp(cfg, conn)
+	app := NewApp(cfg, db)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := app.CreateShortLink(ctx, tt.args.link)
+			got, err := app.CreateShortLink(ctx, 0, tt.args.link)
 
 			if !tt.wantErr {
 				require.NoError(t, err)

@@ -10,6 +10,7 @@ type Cfg struct {
 	baseURL     string
 	filePath    string
 	databaseDSN string
+	secretKey   string
 }
 
 func NewCfg() *Cfg {
@@ -45,7 +46,15 @@ func (c *Cfg) GetDatabaseDSN() string {
 }
 
 func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
-	c.filePath = databaseDSN
+	c.databaseDSN = databaseDSN
+}
+
+func (c *Cfg) GetSecretKey() string {
+	return c.secretKey
+}
+
+func (c *Cfg) SetSecretKey(secretKey string) {
+	c.secretKey = secretKey
 }
 
 func (c *Cfg) ParseCfg() {
@@ -65,6 +74,10 @@ func (c *Cfg) ParseCfg() {
 		flag.StringVar(&c.databaseDSN, "d", "", "Database connection address")
 	}
 
+	if flag.Lookup("t") == nil {
+		flag.StringVar(&c.secretKey, "t", "keycubasic", "JWT secret key ")
+	}
+
 	flag.Parse()
 
 	if a := os.Getenv("SERVER_ADDRESS"); a != "" {
@@ -81,5 +94,9 @@ func (c *Cfg) ParseCfg() {
 
 	if d := os.Getenv("DATABASE_DSN"); d != "" {
 		c.databaseDSN = d
+	}
+
+	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
+		c.secretKey = t
 	}
 }

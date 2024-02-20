@@ -22,13 +22,13 @@ type configuration interface {
 }
 
 type Links struct {
-	cfg  configuration
-	conn *sqlx.DB
+	cfg configuration
+	db  *sqlx.DB
 }
 
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
 	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
-	conn, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
+	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
 
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
@@ -36,7 +36,7 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 
 	log.Infoln("Database connected...")
 
-	tx, err := conn.Begin()
+	tx, err := db.Begin()
 
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage begin transaction: %w", err)
@@ -49,8 +49,20 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	}()
 
 	_, err = tx.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS users (
+			user_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+			date_create TIMESTAMP DEFAULT now()
+	)
+	`)
+
+	if err != nil {
+		return nil, fmt.Errorf("postgre storage create table users: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS links (
 			uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+			user_id INT REFERENCES users(user_id),
 			short_url VARCHAR(8),
 			original_url VARCHAR(100)
 		);
@@ -91,15 +103,15 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 		return nil, fmt.Errorf("postgre storage commit: %w", err)
 	}
 
-	return &Links{cfg: cfg, conn: conn}, nil
+	return &Links{cfg: cfg, db: db}, nil
 }
 
 func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
-	return ls.conn.BeginTx(ctx, nil)
+	return ls.db.BeginTx(ctx, nil)
 }
 
 func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
-	row := ls.conn.QueryRowContext(ctx, `
+	row := ls.db.QueryRowContext(ctx, `
 		SELECT original_url FROM links WHERE short_url = $1
 		`, key)
 	var val string
@@ -113,10 +125,10 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 
-func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
-	if _, err := ls.conn.ExecContext(ctx, `
-			INSERT INTO links (short_url, original_url) VALUES ($1,$2)
-			`, key, link); err != nil {
+func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) error {
+	if _, err := ls.db.ExecContext(ctx, `
+			INSERT INTO links (user_id, short_url, original_url) VALUES ($1,$2,$3)
+			`, userID, key, link); err != nil {
 
 		var pgErr *pgconn.PgError
 
@@ -131,7 +143,7 @@ func (ls *Links) SetLink(ctx context.Context, key string, link string) error {
 }
 
 func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) {
-	row := ls.conn.QueryRowContext(ctx, `
+	row := ls.db.QueryRowContext(ctx, `
 		SELECT short_url FROM links WHERE original_url = $1
 		`, link)
 	var val string
@@ -146,27 +158,62 @@ func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) 
 }
 
 func (ls *Links) Close() error {
-	return ls.conn.Close()
+	return ls.db.Close()
 }
 
 func (ls *Links) PingContext(ctx context.Context) error {
-	return ls.conn.PingContext(ctx)
+	return ls.db.PingContext(ctx)
 }
 
-func (ls *Links) CreateShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) (dao.LinksDao, error) {
+func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	for _, linkDao := range linksDao {
 		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("postgre storage parse request URI: %w", err)
 		}
 
+		linkDao.UserID = userID
 		linkDao.ShortURL = gen.GenKey(linkDao.OriginalURL)
+
 	}
 
-	if _, err := ls.conn.NamedExecContext(ctx, `
-	INSERT INTO links (short_url, original_url) VALUES (:short_url, :original_url)
+	if _, err := ls.db.NamedExecContext(ctx, `
+	INSERT INTO links (user_id, short_url, original_url) VALUES (:user_id, :short_url, :original_url)
 	`, linksDao); err != nil {
-		return nil, fmt.Errorf("postgre storage execute statement: %w", err)
+		return nil, fmt.Errorf("postgre storage insert into links: %w", err)
 	}
 
 	return linksDao, nil
+}
+
+func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
+	err = ls.db.QueryRowContext(ctx, `
+	INSERT INTO users DEFAULT VALUES RETURNING user_id
+	`).Scan(&id)
+
+	if err != nil {
+		return 0, fmt.Errorf("postgre storage insert into users: %w", err)
+	}
+	return
+}
+
+func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDao, err error) {
+	rows, err := ls.db.QueryContext(ctx, `
+	SELECT short_url, original_url FROM links WHERE user_id = $1
+	`, userID)
+
+	if err != nil {
+		return nil, fmt.Errorf("postgre storage get user URLs: %w", err)
+	}
+
+	var shortURL, originalURL string
+	for rows.Next() {
+		rows.Scan(&shortURL, &originalURL)
+
+		if err != nil {
+			return nil, fmt.Errorf("postgre storage get user URLs scan row: %w", err)
+		}
+
+		linksDao = append(linksDao, &dao.LinkDao{ShortURL: shortURL, OriginalURL: originalURL})
+	}
+	return
 }
