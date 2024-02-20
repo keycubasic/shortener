@@ -215,5 +215,10 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 
 		linksDao = append(linksDao, &dao.LinkDao{ShortURL: shortURL, OriginalURL: originalURL})
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgre storage get user URLs after scan rows: %w", err)
+	}
+
 	return
 }

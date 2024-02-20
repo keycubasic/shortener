@@ -115,7 +115,7 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", contentTypeJSON)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
 		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
