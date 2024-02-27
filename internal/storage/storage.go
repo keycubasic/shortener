@@ -14,7 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ErrUniqueViolation = errors.New("storage unique violation")
+var (
+	ErrUniqueViolation = errors.New("storage unique violation")
+	ErrGone            = errors.New("link already gone")
+)
 
 type configuration interface {
 	GetBaseURL() string
@@ -146,11 +149,16 @@ func (ls *Links) AddUser(ctx context.Context) (int, error) {
 func (ls *Links) GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, error) {
 	// for implementation support
 	linksDao := make([]*dao.LinkDao, 0)
-	for k, v := range ls.links {
+	/*for k, v := range ls.links {
 		linkDao := dao.NewLinkDao()
 		linkDao.ShortURL = k
 		linkDao.OriginalURL = v
 		linksDao = append(linksDao, linkDao)
-	}
+	}*/
 	return linksDao, nil
+}
+
+func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
+	// for implementation support
+	return nil
 }

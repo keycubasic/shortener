@@ -31,6 +31,6 @@ func main() {
 	}
 	defer db.Close()
 
-	app := app.NewApp(cfg, db)
+	app := app.NewApp(ctx, cfg, db)
 	handler.RunServer(ctx, cfg, app)
 }

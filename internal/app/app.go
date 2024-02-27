@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/dto"
@@ -12,6 +13,7 @@ import (
 
 type configuration interface {
 	GetBaseURL() string
+	GetBufferSize() int
 }
 
 //go:generate mockgen -source app.go -destination mock_storage.go -package mock database
@@ -24,18 +26,29 @@ type Database interface {
 	CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error)
 	AddUser(ctx context.Context) (int, error)
 	GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, error)
+	DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error
 }
 
 type App struct {
-	cfg configuration
-	db  Database
+	cfg    configuration
+	db     Database
+	linkCh chan dao.LinkDao
 }
 
-func NewApp(cfg configuration, db Database) *App {
-	return &App{
-		cfg: cfg,
-		db:  db,
+func NewApp(ctx context.Context, cfg configuration, db Database) *App {
+	bufferSize := cfg.GetBufferSize()
+
+	instance := &App{
+		cfg:    cfg,
+		db:     db,
+		linkCh: make(chan dao.LinkDao, bufferSize),
 	}
+
+	if bufferSize > 0 {
+		go instance.batchDelete(ctx)
+	}
+
+	return instance
 }
 
 func (a *App) Ping(ctx context.Context) error {
@@ -121,4 +134,30 @@ func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	}
 
 	return linksDto, nil
+}
+
+func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
+	for _, s := range slice {
+		linkDao := mapper.LinkToLinkDao(userID, s)
+		a.linkCh <- *linkDao
+	}
+}
+
+func (a *App) batchDelete(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
+
+	for {
+		select {
+		case linkDao := <-a.linkCh:
+			linksDao = append(linksDao, &linkDao)
+		case <-ticker.C:
+			if len(linksDao) == 0 {
+				continue
+			}
+
+			a.db.DeleteShortLinksBatch(ctx, linksDao)
+			linksDao = nil
+		}
+	}
 }

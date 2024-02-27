@@ -34,7 +34,7 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 	}
 	defer db.Close()
 
-	app := app.NewApp(cfg, db)
+	app := app.NewApp(ctx, cfg, db)
 	h := newURLHandler(cfg, app)
 	return h, nil
 }
@@ -42,6 +42,7 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
+	cfg.SetBufferSize(0)
 	h, err := configureTestHandler(context.Background(), cfg)
 
 	if err != nil {

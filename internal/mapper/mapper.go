@@ -27,3 +27,11 @@ func LinkDaoToLinkDtoURLs(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 	linkDto.OriginalURL = linkDao.OriginalURL
 	return linkDto
 }
+
+func LinkToLinkDao(userID int, link string) *dao.LinkDao {
+	linkDao := dao.NewLinkDao()
+	linkDao.UserID = userID
+	linkDao.ShortURL = link
+	linkDao.DeletedFlag = true
+	return linkDao
+}

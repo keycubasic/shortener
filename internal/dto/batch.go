@@ -1,6 +1,9 @@
 package dto
 
 //easyjson:json
+type Slice []string
+
+//easyjson:json
 type LinksDto []LinkDto
 
 //easyjson:json

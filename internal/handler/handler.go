@@ -23,6 +23,8 @@ var tokenAuth *auth.JWTAuth
 const (
 	contentTypeJSON = "application/json"
 	contentTypeText = "text/plain; charset=utf-8"
+
+	unexpectedError = "unexpected error occurred. try again"
 )
 
 type configuration interface {
@@ -30,6 +32,7 @@ type configuration interface {
 	GetBaseURL() string
 	GetFilePath() string
 	GetSecretKey() string
+	GetBufferSize() int
 }
 
 type application interface {
@@ -40,6 +43,7 @@ type application interface {
 	CreateShortLinksBatch(ctx context.Context, userID int, linksDto dto.LinksDto) (dto.LinksDto, error)
 	AddUser(ctx context.Context) (int, error)
 	GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
+	AppendChan(ctx context.Context, userID int, links dto.Slice)
 }
 
 type URLHandler struct {
@@ -64,37 +68,30 @@ func (h *URLHandler) pingDB(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, err := h.app.GetLink(r.Context(), id)
+	status := http.StatusTemporaryRedirect
 
-	if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrGone) {
 		http.Error(w, "target link not found", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Location", link)
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	if errors.Is(err, storage.ErrGone) {
+		status = http.StatusGone
+	} else {
+		w.Header().Set("Location", link)
+	}
+
+	w.WriteHeader(status)
 }
 
 func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
-	token, claims, err := auth.FromContext(r.Context())
+	userID, err := h.authUser(w, r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	if token == nil {
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		return
-	}
-
-	userIDfloat64, ok := claims["user_id"].(float64)
-
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		return
-	}
-
-	userID := int(userIDfloat64)
 	linksDto, err := h.app.GetUserURLs(r.Context(), userID)
 
 	if err != nil {
@@ -118,13 +115,12 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
-		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		http.Error(w, unexpectedError, http.StatusBadRequest)
 		return
 	}
 }
 
 func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
-
 	userID, err := h.getUserID(w, r)
 
 	if err != nil {
@@ -171,7 +167,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
-		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		http.Error(w, unexpectedError, http.StatusBadRequest)
 		return
 	}
 }
@@ -189,6 +185,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	if err := json.Unmarshal(body, req); err != nil {
@@ -215,6 +212,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		statusCode = http.StatusConflict
@@ -232,7 +230,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
-		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		http.Error(w, unexpectedError, http.StatusBadRequest)
 		return
 	}
 }
@@ -250,6 +248,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	if err := json.Unmarshal(body, &reqLinksDto); err != nil {
@@ -275,9 +274,38 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 
 	if _, err := w.Write([]byte(resBody)); err != nil {
-		http.Error(w, "unexpected error occurred. try again", http.StatusBadRequest)
+		http.Error(w, unexpectedError, http.StatusBadRequest)
 		return
 	}
+}
+
+func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.authUser(w, r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	slice := new(dto.Slice)
+	err = json.Unmarshal(body, slice)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	h.app.AppendChan(r.Context(), userID, *slice)
+
+	w.Header().Add("Content-Type", contentTypeJSON)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
@@ -321,6 +349,28 @@ func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID i
 	return
 }
 
+func (h *URLHandler) authUser(w http.ResponseWriter, r *http.Request) (userID int, err error) {
+	token, claims, err := auth.FromContext(r.Context())
+
+	if err != nil {
+		return 0, fmt.Errorf("handler auth user from context: %w", err)
+	}
+
+	if token == nil {
+		return 0, fmt.Errorf("handler auth user from context : %w", errors.New("empty token"))
+	}
+
+	userIDfloat64, ok := claims["user_id"].(float64)
+
+	if !ok {
+		return 0, fmt.Errorf("handler auth user convert claims")
+	}
+
+	userID = int(userIDfloat64)
+
+	return
+}
+
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 
@@ -334,6 +384,7 @@ func (h *URLHandler) getRouter() chi.Router {
 		r.Post("/", h.shortenURL)
 		r.Post("/api/shorten", h.shortenURLJSON)
 		r.Post("/api/shorten/batch", h.shortenURLJSONBatch)
+		r.Delete("/api/user/urls", h.deleteUserURLs)
 	})
 
 	r.Group(func(r chi.Router) {

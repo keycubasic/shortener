@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -64,7 +65,8 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 			uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 			user_id INT REFERENCES users(user_id),
 			short_url VARCHAR(8),
-			original_url VARCHAR(100)
+			original_url VARCHAR(100),
+			is_deleted BOOLEAN
 		);
 		`)
 
@@ -73,7 +75,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	}
 
 	_, err = tx.ExecContext(ctx, `
-
 		CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);
 		`)
 
@@ -112,14 +113,21 @@ func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
 
 func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	row := ls.db.QueryRowContext(ctx, `
-		SELECT original_url FROM links WHERE short_url = $1
+		SELECT original_url, is_deleted FROM links WHERE short_url = $1
 		`, key)
-	var val string
+	var (
+		val string
+		del sql.NullBool
+	)
 
-	err := row.Scan(&val)
+	err := row.Scan(&val, &del)
 
 	if err != nil {
 		return "", fmt.Errorf("postgre storage select link from database: %w", err)
+	}
+
+	if del.Valid && del.Bool {
+		return "", fmt.Errorf("postgre storage select link from database: %w", storage.ErrGone)
 	}
 
 	return val, nil
@@ -127,7 +135,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 
 func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) error {
 	if _, err := ls.db.ExecContext(ctx, `
-			INSERT INTO links (user_id, short_url, original_url) VALUES ($1,$2,$3)
+		INSERT INTO links (user_id, short_url, original_url) VALUES ($1,$2,$3)
 			`, userID, key, link); err != nil {
 
 		var pgErr *pgconn.PgError
@@ -177,7 +185,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	}
 
 	if _, err := ls.db.NamedExecContext(ctx, `
-	INSERT INTO links (user_id, short_url, original_url) VALUES (:user_id, :short_url, :original_url)
+		INSERT INTO links (user_id, short_url, original_url) VALUES (:user_id, :short_url, :original_url)
 	`, linksDao); err != nil {
 		return nil, fmt.Errorf("postgre storage insert into links batch: %w", err)
 	}
@@ -187,7 +195,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 
 func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	err = ls.db.QueryRowContext(ctx, `
-	INSERT INTO users DEFAULT VALUES RETURNING user_id
+		INSERT INTO users DEFAULT VALUES RETURNING user_id
 	`).Scan(&id)
 
 	if err != nil {
@@ -198,7 +206,7 @@ func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 
 func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDao, err error) {
 	rows, err := ls.db.QueryContext(ctx, `
-	SELECT short_url, original_url FROM links WHERE user_id = $1
+		SELECT short_url, original_url FROM links WHERE user_id = $1
 	`, userID)
 
 	if err != nil {
@@ -222,4 +230,30 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 	}
 
 	return
+}
+
+func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
+	var values []string
+	var args []any
+	for i, linkDao := range linksDao {
+		base := i * 3
+		params := fmt.Sprintf("($%d, $%d, $%d)", base+1, base+2, base+3)
+		values = append(values, params)
+		args = append(args, fmt.Sprint(linkDao.UserID), linkDao.ShortURL, fmt.Sprint(linkDao.DeletedFlag))
+	}
+
+	query := `
+		UPDATE links AS ls SET is_deleted = CAST(v.is_deleted AS BOOLEAN)
+		  FROM (VALUES ` + strings.Join(values, ",\n") + `)
+		    AS v (user_id, short_url, is_deleted)
+		 WHERE ls.user_id = CAST(v.user_id AS INTEGER)
+           AND ls.short_url = v.short_url`
+
+	_, err := ls.db.ExecContext(ctx, query, args...)
+
+	if err != nil {
+		return fmt.Errorf("postgre storage delete from links batch: %w", err)
+	}
+
+	return nil
 }

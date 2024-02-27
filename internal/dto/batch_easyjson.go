@@ -17,7 +17,73 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(in *jlexer.Lexer, out *LinksDto) {
+func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(in *jlexer.Lexer, out *Slice) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		in.Skip()
+		*out = nil
+	} else {
+		in.Delim('[')
+		if *out == nil {
+			if !in.IsDelim(']') {
+				*out = make(Slice, 0, 4)
+			} else {
+				*out = Slice{}
+			}
+		} else {
+			*out = (*out)[:0]
+		}
+		for !in.IsDelim(']') {
+			var v1 string
+			v1 = string(in.String())
+			*out = append(*out, v1)
+			in.WantComma()
+		}
+		in.Delim(']')
+	}
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(out *jwriter.Writer, in Slice) {
+	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+		out.RawString("null")
+	} else {
+		out.RawByte('[')
+		for v2, v3 := range in {
+			if v2 > 0 {
+				out.RawByte(',')
+			}
+			out.String(string(v3))
+		}
+		out.RawByte(']')
+	}
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v Slice) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v Slice) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *Slice) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *Slice) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(l, v)
+}
+func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(in *jlexer.Lexer, out *LinksDto) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		in.Skip()
@@ -34,9 +100,9 @@ func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(in *jlexer.Le
 			*out = (*out)[:0]
 		}
 		for !in.IsDelim(']') {
-			var v1 LinkDto
-			(v1).UnmarshalEasyJSON(in)
-			*out = append(*out, v1)
+			var v4 LinkDto
+			(v4).UnmarshalEasyJSON(in)
+			*out = append(*out, v4)
 			in.WantComma()
 		}
 		in.Delim(']')
@@ -45,16 +111,16 @@ func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(in *jlexer.Le
 		in.Consumed()
 	}
 }
-func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(out *jwriter.Writer, in LinksDto) {
+func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(out *jwriter.Writer, in LinksDto) {
 	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 		out.RawString("null")
 	} else {
 		out.RawByte('[')
-		for v2, v3 := range in {
-			if v2 > 0 {
+		for v5, v6 := range in {
+			if v5 > 0 {
 				out.RawByte(',')
 			}
-			(v3).MarshalEasyJSON(out)
+			(v6).MarshalEasyJSON(out)
 		}
 		out.RawByte(']')
 	}
@@ -63,27 +129,27 @@ func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(out *jwriter.
 // MarshalJSON supports json.Marshaler interface
 func (v LinksDto) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(&w, v)
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v LinksDto) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto(w, v)
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *LinksDto) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(&r, v)
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *LinksDto) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto(l, v)
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(l, v)
 }
-func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(in *jlexer.Lexer, out *LinkDto) {
+func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto2(in *jlexer.Lexer, out *LinkDto) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -118,7 +184,7 @@ func easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(in *jlexer.L
 		in.Consumed()
 	}
 }
-func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(out *jwriter.Writer, in LinkDto) {
+func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto2(out *jwriter.Writer, in LinkDto) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -154,23 +220,23 @@ func easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(out *jwriter
 // MarshalJSON supports json.Marshaler interface
 func (v LinkDto) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(&w, v)
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v LinkDto) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto1(w, v)
+	easyjson917759c2EncodeGithubComKeycubasicShortenerInternalDto2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *LinkDto) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(&r, v)
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *LinkDto) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto1(l, v)
+	easyjson917759c2DecodeGithubComKeycubasicShortenerInternalDto2(l, v)
 }

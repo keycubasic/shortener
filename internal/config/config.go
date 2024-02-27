@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"strconv"
 )
 
 type Cfg struct {
@@ -11,6 +12,7 @@ type Cfg struct {
 	filePath    string
 	databaseDSN string
 	secretKey   string
+	bufferSize  int
 }
 
 func NewCfg() *Cfg {
@@ -57,6 +59,14 @@ func (c *Cfg) SetSecretKey(secretKey string) {
 	c.secretKey = secretKey
 }
 
+func (c *Cfg) GetBufferSize() int {
+	return c.bufferSize
+}
+
+func (c *Cfg) SetBufferSize(bufferSize int) {
+	c.bufferSize = bufferSize
+}
+
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
@@ -75,7 +85,11 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("t") == nil {
-		flag.StringVar(&c.secretKey, "t", "keycubasic", "JWT secret key ")
+		flag.StringVar(&c.secretKey, "t", "keycubasic", "JWT secret key")
+	}
+
+	if flag.Lookup("s") == nil {
+		flag.IntVar(&c.bufferSize, "s", 1024, "Size of worker buffer")
 	}
 
 	flag.Parse()
@@ -98,5 +112,9 @@ func (c *Cfg) ParseCfg() {
 
 	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
 		c.secretKey = t
+	}
+
+	if s := os.Getenv("BUFFER_SIZE"); s != "" {
+		c.bufferSize, _ = strconv.Atoi(s)
 	}
 }

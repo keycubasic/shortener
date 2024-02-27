@@ -36,7 +36,7 @@ func TestCreateShortLink(t *testing.T) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	app := NewApp(cfg, db)
+	app := NewApp(ctx, cfg, db)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
