@@ -7,12 +7,13 @@ import (
 )
 
 type Cfg struct {
-	address     string
-	baseURL     string
-	filePath    string
-	databaseDSN string
-	secretKey   string
-	bufferSize  int
+	address       string
+	baseURL       string
+	filePath      string
+	databaseDSN   string
+	secretKey     string
+	bufferSize    int
+	tickerSeconds int
 }
 
 func NewCfg() *Cfg {
@@ -67,6 +68,14 @@ func (c *Cfg) SetBufferSize(bufferSize int) {
 	c.bufferSize = bufferSize
 }
 
+func (c *Cfg) GetTickerSeconds() int {
+	return c.tickerSeconds
+}
+
+func (c *Cfg) SetTickerSeconds(tickerSeconds int) {
+	c.tickerSeconds = tickerSeconds
+}
+
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
@@ -90,6 +99,10 @@ func (c *Cfg) ParseCfg() {
 
 	if flag.Lookup("s") == nil {
 		flag.IntVar(&c.bufferSize, "s", 1024, "Size of worker buffer")
+	}
+
+	if flag.Lookup("u") == nil {
+		flag.IntVar(&c.tickerSeconds, "u", 10, "Update ticker duration (seconds)")
 	}
 
 	flag.Parse()
@@ -116,5 +129,9 @@ func (c *Cfg) ParseCfg() {
 
 	if s := os.Getenv("BUFFER_SIZE"); s != "" {
 		c.bufferSize, _ = strconv.Atoi(s)
+	}
+
+	if u := os.Getenv("TICKER_DURATION"); u != "" {
+		c.tickerSeconds, _ = strconv.Atoi(u)
 	}
 }

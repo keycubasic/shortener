@@ -33,6 +33,7 @@ type configuration interface {
 	GetFilePath() string
 	GetSecretKey() string
 	GetBufferSize() int
+	GetTickerSeconds() int
 }
 
 type application interface {

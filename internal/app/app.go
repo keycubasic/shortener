@@ -14,6 +14,7 @@ import (
 type configuration interface {
 	GetBaseURL() string
 	GetBufferSize() int
+	GetTickerSeconds() int
 }
 
 //go:generate mockgen -source app.go -destination mock_storage.go -package mock database
@@ -144,7 +145,7 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 }
 
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerSeconds()) * time.Second)
 	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
 
 	for {
