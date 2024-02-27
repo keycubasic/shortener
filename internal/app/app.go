@@ -144,7 +144,7 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 }
 
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(10 * time.Second)
 	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
 
 	for {
