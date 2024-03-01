@@ -4,11 +4,10 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
-	"strings"
-	"testing"
-
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"testing"
 
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
@@ -27,14 +26,13 @@ func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
 }
 
 func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, error) {
-	conn, err := connectDB(ctx, cfg)
-
+	db, err := connectDB(ctx, cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer conn.Close()
+	defer db.Close()
 
-	app := app.NewApp(cfg, conn)
+	app := app.NewApp(ctx, cfg, db)
 	h := newURLHandler(cfg, app)
 	return h, nil
 }
@@ -42,8 +40,8 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
+	cfg.SetBufferSize(0)
 	h, err := configureTestHandler(context.Background(), cfg)
-
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -64,7 +62,6 @@ func TestRunServer(t *testing.T) {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
 	h, err := configureTestHandler(context.Background(), cfg)
-
 	if err != nil {
 		t.Fatal(err)
 	}

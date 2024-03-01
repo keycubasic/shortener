@@ -24,13 +24,12 @@ func main() {
 	ctx := context.Background()
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
-	conn, err := connectDB(ctx, cfg)
-
+	db, err := connectDB(ctx, cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer conn.Close()
+	defer db.Close()
 
-	app := app.NewApp(cfg, conn)
+	app := app.NewApp(ctx, cfg, db)
 	handler.RunServer(ctx, cfg, app)
 }

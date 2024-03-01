@@ -20,3 +20,18 @@ func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
 	return linkDto
 }
+
+func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto {
+	linkDto := dto.NewLinkDto()
+	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
+	linkDto.OriginalURL = linkDao.OriginalURL
+	return linkDto
+}
+
+func LinkToLinkDao(userID int, link string) *dao.LinkDao {
+	linkDao := dao.NewLinkDao()
+	linkDao.UserID = userID
+	linkDao.ShortURL = link
+	linkDao.DeletedFlag = true
+	return linkDao
+}
