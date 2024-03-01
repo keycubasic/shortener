@@ -11,13 +11,13 @@ type LinkDao struct {
 	OriginalURL   string `json:"original_url" db:"original_url"`
 	CorrelationID string `json:"-"`
 	UserID        int    `json:"-" db:"user_id"`
-	DeletedFlag   bool   `json:"-" db:"is_deleted"`
+	DeletedFlag   bool   `json:"-"`
 }
 
 type LinkDaoBatch struct {
-	ShortURL      string `db:"short_url"`
-	OriginalURL   string `db:"original_url"`
-	DeletedFlag   bool   `db:"is_deleted"`
+	ShortURL    string
+	OriginalURL string
+	DeletedFlag bool
 }
 
 func NewLinkDao() *LinkDao {
