@@ -30,7 +30,6 @@ type Links struct {
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
 	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
 	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
 	}
@@ -38,7 +37,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	log.Infoln("Database connected...")
 
 	tx, err := db.Begin()
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage begin transaction: %w", err)
 	}
@@ -55,7 +53,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 			date_create TIMESTAMP DEFAULT now()
 	)
 	`)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage create table users: %w", err)
 	}
@@ -69,7 +66,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 			is_deleted BOOLEAN
 		);
 		`)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage create table links: %w", err)
 	}
@@ -77,7 +73,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	_, err = tx.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);
 		`)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage create index on field short_url: %w", err)
 	}
@@ -85,7 +80,6 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	_, err = tx.ExecContext(ctx, `
 		CREATE UNIQUE INDEX IF NOT EXISTS original_url_idx ON links (original_url);
 		`)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage create unique index on field original_url: %w", err)
 	}
@@ -93,13 +87,11 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	_, err = tx.ExecContext(ctx, `
 		GRANT ALL PRIVILEGES ON links TO PUBLIC;
 		`)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage grant privilages on table links: %w", err)
 	}
 
 	err = tx.Commit()
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage commit: %w", err)
 	}
@@ -121,7 +113,6 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	)
 
 	err := row.Scan(&val, &del)
-
 	if err != nil {
 		return "", fmt.Errorf("postgre storage select link from database: %w", err)
 	}
@@ -157,7 +148,6 @@ func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) 
 	var val string
 
 	err := row.Scan(&val)
-
 	if err != nil {
 		return "", fmt.Errorf("postgre storage select shortlink from database: %w", err)
 	}
@@ -197,18 +187,16 @@ func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	err = ls.db.QueryRowContext(ctx, `
 		INSERT INTO users DEFAULT VALUES RETURNING user_id
 	`).Scan(&id)
-
 	if err != nil {
 		return 0, fmt.Errorf("postgre storage insert into users: %w", err)
 	}
 	return
 }
 
-func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDao, err error) {
+func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDaoBatch, err error) {
 	rows, err := ls.db.QueryContext(ctx, `
 		SELECT short_url, original_url FROM links WHERE user_id = $1
 	`, userID)
-
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage select user URLs from database: %w", err)
 	}
@@ -217,12 +205,11 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 
 	for rows.Next() {
 		err := rows.Scan(&shortURL, &originalURL)
-
 		if err != nil {
 			return nil, fmt.Errorf("postgre storage get user URLs scan row: %w", err)
 		}
 
-		linksDao = append(linksDao, &dao.LinkDao{ShortURL: shortURL, OriginalURL: originalURL})
+		linksDao = append(linksDao, &dao.LinkDaoBatch{ShortURL: shortURL, OriginalURL: originalURL})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -250,7 +237,6 @@ func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
            AND ls.short_url = v.short_url`
 
 	_, err := ls.db.ExecContext(ctx, query, args...)
-
 	if err != nil {
 		return fmt.Errorf("postgre storage delete from links batch: %w", err)
 	}

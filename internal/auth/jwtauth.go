@@ -172,7 +172,6 @@ func Authenticator(ja *JWTAuth) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		hfn := func(w http.ResponseWriter, r *http.Request) {
 			token, _, err := FromContext(r.Context())
-
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return

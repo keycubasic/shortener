@@ -86,15 +86,13 @@ func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.authUser(w, r)
-
+	userID, err := h.authUser(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	linksDto, err := h.app.GetUserURLs(r.Context(), userID)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -106,7 +104,6 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resBody, err := json.Marshal(linksDto)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -123,14 +120,12 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -154,7 +149,6 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 
 	if errors.Is(err, storage.ErrUniqueViolation) {
 		key, err = h.app.GetShortLink(r.Context(), link)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -175,7 +169,6 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -183,7 +176,6 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	req := dto.NewRequest()
 	body, err := io.ReadAll(r.Body)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -210,7 +202,6 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	if errors.Is(err, storage.ErrUniqueViolation) {
 		key, err = h.app.GetShortLink(r.Context(), req.URL)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -221,7 +212,6 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 	res := dto.NewResponse(strings.Join([]string{h.cfg.GetBaseURL(), key}, "/"))
 	resBody, err := json.Marshal(res)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -238,7 +228,6 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 
 func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -246,7 +235,6 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 
 	reqLinksDto := make(dto.LinksDto, 0)
 	body, err := io.ReadAll(r.Body)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -258,14 +246,12 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 	}
 
 	resLinksDto, err := h.app.CreateShortLinksBatch(r.Context(), userID, reqLinksDto)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	resBody, err := json.Marshal(resLinksDto)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -281,15 +267,13 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
-	userID, err := h.authUser(w, r)
-
+	userID, err := h.authUser(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -297,7 +281,6 @@ func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 
 	slice := new(dto.Slice)
 	err = json.Unmarshal(body, slice)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -312,21 +295,18 @@ func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
 	ctx := r.Context()
 	token, claims, err := auth.FromContext(ctx)
-
 	if err != nil {
 		return 0, fmt.Errorf("handler get user id from context: %w", err)
 	}
 
 	if token == nil {
 		userID, err = h.app.AddUser(ctx)
-
 		if err != nil {
 			return 0, fmt.Errorf("handler get user id add user: %w", err)
 		}
 
 		claims := map[string]any{"user_id": userID}
 		_, tokenString, err := tokenAuth.Encode(claims)
-
 		if err != nil {
 			return 0, fmt.Errorf("handler get user id encode claims: %w", err)
 		}
@@ -350,15 +330,14 @@ func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID i
 	return
 }
 
-func (h *URLHandler) authUser(w http.ResponseWriter, r *http.Request) (userID int, err error) {
+func (h *URLHandler) authUser(r *http.Request) (userID int, err error) {
 	token, claims, err := auth.FromContext(r.Context())
-
 	if err != nil {
 		return 0, fmt.Errorf("handler auth user from context: %w", err)
 	}
 
 	if token == nil {
-		return 0, fmt.Errorf("handler auth user from context : %w", errors.New("empty token"))
+		return 0, fmt.Errorf("handler auth user from context: %w", errors.New("empty token"))
 	}
 
 	userIDfloat64, ok := claims["user_id"].(float64)

@@ -25,7 +25,6 @@ func main() {
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
 	db, err := connectDB(ctx, cfg)
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}

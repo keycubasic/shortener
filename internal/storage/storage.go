@@ -39,7 +39,6 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 
 	if cfg.GetFilePath() != "" {
 		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
-
 		if err != nil {
 			return nil, fmt.Errorf("storage create consumer: %w", err)
 		}
@@ -65,7 +64,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	return ls, nil
 }
 
-func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
+func (ls *Links) GetLink(_ context.Context, key string) (string, error) {
 	ls.RLock()
 	defer ls.RUnlock()
 
@@ -99,7 +98,7 @@ func (ls *Links) SetLink(ctx context.Context, userID int, key string, link strin
 	return nil
 }
 
-func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) {
+func (ls *Links) GetShortLink(_ context.Context, link string) (string, error) {
 	for k, v := range ls.links {
 		if v == link {
 			return k, nil
@@ -117,7 +116,7 @@ func (ls *Links) Close() error {
 	return nil
 }
 
-func (ls *Links) PingContext(ctx context.Context) error {
+func (ls *Links) PingContext(_ context.Context) error {
 	// for implementation support
 	return nil
 }
@@ -141,14 +140,14 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	return linksDao, nil
 }
 
-func (ls *Links) AddUser(ctx context.Context) (int, error) {
+func (ls *Links) AddUser(_ context.Context) (int, error) {
 	// for implementation support
 	return 1, nil
 }
 
-func (ls *Links) GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, error) {
+func (ls *Links) GetUserURLs(_ context.Context, _ int) (dao.LinksDaoBatch, error) {
 	// for implementation support
-	linksDao := make([]*dao.LinkDao, 0)
+	linksDao := make([]*dao.LinkDaoBatch, 0)
 	/*for k, v := range ls.links {
 		linkDao := dao.NewLinkDao()
 		linkDao.ShortURL = k
@@ -158,7 +157,7 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, err
 	return linksDao, nil
 }
 
-func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
+func (ls *Links) DeleteShortLinksBatch(_ context.Context, _ dao.LinksDao) error {
 	// for implementation support
 	return nil
 }

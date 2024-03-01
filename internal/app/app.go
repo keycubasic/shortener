@@ -26,7 +26,7 @@ type Database interface {
 	PingContext(ctx context.Context) error
 	CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error)
 	AddUser(ctx context.Context) (int, error)
-	GetUserURLs(ctx context.Context, userID int) (dao.LinksDao, error)
+	GetUserURLs(ctx context.Context, userID int) (dao.LinksDaoBatch, error)
 	DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error
 }
 
@@ -58,7 +58,6 @@ func (a *App) Ping(ctx context.Context) error {
 
 func (a *App) GetLink(ctx context.Context, id string) (string, error) {
 	link, err := a.db.GetLink(ctx, id)
-
 	if err != nil {
 		return "", fmt.Errorf("app get link: %w", err)
 	}
@@ -78,7 +77,6 @@ func (a *App) CreateShortLink(ctx context.Context, userID int, link string) (str
 
 func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
 	shortLink, err := a.db.GetShortLink(ctx, link)
-
 	if err != nil {
 		return "", fmt.Errorf("app get short link: %w", err)
 	}
@@ -97,7 +95,6 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, userID int, linksDto dt
 	}
 
 	resLinksDao, err := a.db.CreateShortLinksBatch(ctx, userID, reqLinksDao)
-
 	if err != nil {
 		return nil, fmt.Errorf("app create short links batch: %w", err)
 	}
@@ -112,7 +109,6 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, userID int, linksDto dt
 
 func (a *App) AddUser(ctx context.Context) (int, error) {
 	id, err := a.db.AddUser(ctx)
-
 	if err != nil {
 		return 0, fmt.Errorf("app add user: %w", err)
 	}
@@ -122,7 +118,6 @@ func (a *App) AddUser(ctx context.Context) (int, error) {
 
 func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error) {
 	linksDao, err := a.db.GetUserURLs(ctx, userID)
-
 	if err != nil {
 		return nil, fmt.Errorf("app get user URLs: %w", err)
 	}

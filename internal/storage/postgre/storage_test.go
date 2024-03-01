@@ -9,7 +9,6 @@ import (
 )
 
 func TestGetLink(t *testing.T) {
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

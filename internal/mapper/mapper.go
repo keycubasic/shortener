@@ -21,7 +21,7 @@ func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 	return linkDto
 }
 
-func LinkDaoToLinkDtoURLs(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
+func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto {
 	linkDto := dto.NewLinkDto()
 	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
 	linkDto.OriginalURL = linkDao.OriginalURL

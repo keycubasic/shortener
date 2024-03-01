@@ -21,8 +21,7 @@ type Producer struct {
 }
 
 func NewProducer(fname string) (*Producer, error) {
-	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-
+	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
 		return nil, fmt.Errorf("loader producer open file: %w", err)
 	}
@@ -33,14 +32,13 @@ func NewProducer(fname string) (*Producer, error) {
 	}, nil
 }
 
-func (p *Producer) Save(ctx context.Context, id int, key, link string) error {
+func (p *Producer) Save(_ context.Context, id int, key, link string) error {
 	linkDao := dao.NewLinkDao()
 	linkDao.UUID = id
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
 
 	data, err := json.Marshal(linkDao)
-
 	if err != nil {
 		return fmt.Errorf("loader producer marshal dao: %w", err)
 	}
@@ -67,8 +65,7 @@ type Consumer struct {
 }
 
 func NewConsumer(db database, fname string) (*Consumer, error) {
-	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0666)
-
+	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0o666)
 	if err != nil {
 		return nil, fmt.Errorf("loader сonsumer open file: %w", err)
 	}
@@ -84,7 +81,6 @@ func (c *Consumer) Load(ctx context.Context) error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
-
 		if err != nil {
 			return fmt.Errorf("loader сonsumer unmarshal dao: %w", err)
 		}
