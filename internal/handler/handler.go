@@ -8,17 +8,22 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/auth"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
 	"github.com/keycubasic/shortener/internal/storage"
-	json "github.com/mailru/easyjson"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
-var tokenAuth *auth.JWTAuth
+var (
+	tokenAuth *auth.JWTAuth
+	json      = jsoniter.ConfigCompatibleWithStandardLibrary
+)
 
 const (
 	contentTypeJSON = "application/json"
@@ -34,6 +39,7 @@ type configuration interface {
 	GetSecretKey() string
 	GetBufferSize() int
 	GetTickerSeconds() int
+	GetClosingDuration() int
 }
 
 type application interface {
@@ -353,10 +359,9 @@ func (h *URLHandler) authUser(r *http.Request) (userID int, err error) {
 
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
-
-	r.Use(middleware.Logger)
 	r.Use(middleware.Gzip)
-
+	r.Use(middleware.Logger)
+	r.Get("/ping", h.pingDB)
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Verifier(tokenAuth))
 		r.Get("/{id}", h.getOriginalURL)
@@ -367,9 +372,7 @@ func (h *URLHandler) getRouter() chi.Router {
 		r.Delete("/api/user/urls", h.deleteUserURLs)
 	})
 
-	r.Group(func(r chi.Router) {
-		r.Get("/ping", h.pingDB)
-	})
+	r.Handle("/debug/pprof/*", http.DefaultServeMux)
 
 	return r
 }
@@ -377,12 +380,26 @@ func (h *URLHandler) getRouter() chi.Router {
 func RunServer(ctx context.Context, cfg configuration, app application) {
 	h := newURLHandler(cfg, app)
 	r := h.getRouter()
+	s := http.Server{Addr: cfg.GetAddress(), Handler: r}
+	g, gCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return s.ListenAndServe()
+	})
+
 	log.Infof("Server listening address %s with base URL %s",
 		cfg.GetAddress(), cfg.GetBaseURL())
 
-	if err := http.ListenAndServe(cfg.GetAddress(), r); err != nil {
-		log.Fatal(err)
-	}
+	ctxWithTimeout, cancel := context.
+		WithTimeout(context.Background(), time.Duration(cfg.GetClosingDuration()))
+	defer cancel()
 
-	log.Println("Server stops")
+	g.Go(func() error {
+		<-gCtx.Done()
+		log.Info("Server stops")
+		return s.Shutdown(ctxWithTimeout)
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Infof("Exit reason: %s", err)
+	}
 }

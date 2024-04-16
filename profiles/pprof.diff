@@ -1,0 +1,43 @@
+File: main.exe
+Build ID: C:\Users\KONSTA~1.KON\AppData\Local\Temp\go-build3491725464\b001\exe\main.exe2024-04-16 13:37:42.4823658 +0300 MSK
+Type: inuse_space
+Time: Apr 16, 2024 at 1:25pm (MSK)
+Showing nodes accounting for -707.50kB, 57.35% of 1233.63kB total
+      flat  flat%   sum%        cum   cum%
+ -650.62kB 52.74% 52.74% -1233.63kB   100%  compress/flate.(*compressor).init
+ -583.01kB 47.26%   100%  -583.01kB 47.26%  compress/flate.newDeflateFast (inline)
+  526.13kB 42.65% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5/pgtype.(*Map).buildReflectTypeToType (inline)
+         0     0% 57.35% -1233.63kB   100%  compress/flate.NewWriter (inline)
+         0     0% 57.35% -1233.63kB   100%  compress/gzip.(*Writer).Write
+         0     0% 57.35%   526.13kB 42.65%  database/sql.(*DB).PingContext
+         0     0% 57.35%   526.13kB 42.65%  database/sql.(*DB).PingContext.func1
+         0     0% 57.35%   526.13kB 42.65%  database/sql.(*DB).conn
+         0     0% 57.35%   526.13kB 42.65%  database/sql.(*DB).retry
+         0     0% 57.35% -1233.63kB   100%  github.com/go-chi/chi.(*Mux).ServeHTTP
+         0     0% 57.35% -1233.63kB   100%  github.com/go-chi/chi.(*Mux).routeHTTP
+         0     0% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5.ConnectConfig
+         0     0% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5.connect
+         0     0% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5/pgtype.NewMap
+         0     0% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5/pgtype.initDefaultMap
+         0     0% 57.35%   526.13kB 42.65%  github.com/jackc/pgx/v5/stdlib.(*driverConnector).Connect
+         0     0% 57.35% -1233.63kB   100%  github.com/keycubasic/shortener/internal/middleware.Gzip.func1
+         0     0% 57.35% -1233.63kB   100%  github.com/keycubasic/shortener/internal/middleware.Logger.func1
+         0     0% 57.35%   526.13kB 42.65%  github.com/keycubasic/shortener/internal/storage/postgre.NewLinks
+         0     0% 57.35%   526.13kB 42.65%  main.connectDB
+         0     0% 57.35%   526.13kB 42.65%  main.main
+         0     0% 57.35% -1233.63kB   100%  net/http.(*ServeMux).ServeHTTP
+         0     0% 57.35% -1233.63kB   100%  net/http.(*conn).serve
+         0     0% 57.35% -1233.63kB   100%  net/http.HandlerFunc.ServeHTTP
+         0     0% 57.35% -1233.63kB   100%  net/http.serverHandler.ServeHTTP
+         0     0% 57.35% -1233.63kB   100%  net/http/pprof.Index
+         0     0% 57.35% -1233.63kB   100%  net/http/pprof.collectProfile
+         0     0% 57.35% -1233.63kB   100%  net/http/pprof.handler.ServeHTTP
+         0     0% 57.35% -1233.63kB   100%  net/http/pprof.handler.serveDeltaProfile
+         0     0% 57.35%   526.13kB 42.65%  runtime.main
+         0     0% 57.35% -1233.63kB   100%  runtime/pprof.(*Profile).WriteTo
+         0     0% 57.35% -1233.63kB   100%  runtime/pprof.(*profileBuilder).build
+         0     0% 57.35% -1233.63kB   100%  runtime/pprof.writeHeap
+         0     0% 57.35% -1233.63kB   100%  runtime/pprof.writeHeapInternal
+         0     0% 57.35% -1233.63kB   100%  runtime/pprof.writeHeapProto
+         0     0% 57.35%   526.13kB 42.65%  sync.(*Once).Do (inline)
+         0     0% 57.35%   526.13kB 42.65%  sync.(*Once).doSlow

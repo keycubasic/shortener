@@ -3,17 +3,17 @@ package config
 import (
 	"flag"
 	"os"
-	"strconv"
 )
 
 type Cfg struct {
-	address       string
-	baseURL       string
-	filePath      string
-	databaseDSN   string
-	secretKey     string
-	bufferSize    int
-	tickerSeconds int
+	address         string
+	baseURL         string
+	filePath        string
+	databaseDSN     string
+	secretKey       string
+	bufferSize      int
+	tickerSeconds   int
+	closingDuration int
 }
 
 func NewCfg() *Cfg {
@@ -76,6 +76,10 @@ func (c *Cfg) SetTickerSeconds(tickerSeconds int) {
 	c.tickerSeconds = tickerSeconds
 }
 
+func (c *Cfg) GetClosingDuration() int {
+	return c.closingDuration
+}
+
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
@@ -125,13 +129,5 @@ func (c *Cfg) ParseCfg() {
 
 	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
 		c.secretKey = t
-	}
-
-	if s := os.Getenv("BUFFER_SIZE"); s != "" {
-		c.bufferSize, _ = strconv.Atoi(s)
-	}
-
-	if u := os.Getenv("TICKER_DURATION"); u != "" {
-		c.tickerSeconds, _ = strconv.Atoi(u)
 	}
 }

@@ -51,7 +51,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 			return nil, fmt.Errorf("storage close consumer: %w", err)
 		}
 
-		log.Infoln("Records count preloaded from disk storage:", ls.count())
+		log.Info("Records count preloaded from disk storage:", ls.count())
 
 		// Init producer
 		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
@@ -59,7 +59,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 		}
 	}
 
-	log.Infoln("Internal storage created...")
+	log.Info("Internal storage created...")
 
 	return ls, nil
 }
@@ -158,6 +158,11 @@ func (ls *Links) GetUserURLs(_ context.Context, _ int) (dao.LinksDaoBatch, error
 }
 
 func (ls *Links) DeleteShortLinksBatch(_ context.Context, _ dao.LinksDao) error {
+	// for implementation support
+	return nil
+}
+
+func (ls *Links) Migrate(_ context.Context) error {
 	// for implementation support
 	return nil
 }

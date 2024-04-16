@@ -3,6 +3,7 @@ package postgre
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"net/url"
@@ -14,8 +15,12 @@ import (
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/pressly/goose/v3"
 	log "github.com/sirupsen/logrus"
 )
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 type configuration interface {
 	GetBaseURL() string
@@ -28,79 +33,33 @@ type Links struct {
 }
 
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
-	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
+	log.Info("Database DSN:", cfg.GetDatabaseDSN())
 	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
 	}
 
-	log.Infoln("Database connected...")
-
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage begin transaction: %w", err)
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("postgre storage database ping connection: %w", err)
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS users (
-			user_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-			date_create TIMESTAMP DEFAULT now()
-	)
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create table users: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS links (
-			uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-			user_id INT REFERENCES users(user_id),
-			short_url VARCHAR(8),
-			original_url VARCHAR(100),
-			is_deleted BOOLEAN
-		);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create table links: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create index on field short_url: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE UNIQUE INDEX IF NOT EXISTS original_url_idx ON links (original_url);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create unique index on field original_url: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		GRANT ALL PRIVILEGES ON links TO PUBLIC;
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage grant privilages on table links: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage commit: %w", err)
-	}
-
+	log.Info("Database connected...")
 	return &Links{cfg: cfg, db: db}, nil
 }
 
-func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
-	return ls.db.BeginTx(ctx, nil)
+func (ls Links) Migrate(ctx context.Context) error {
+	goose.SetBaseFS(embedMigrations)
+	goose.SetLogger(log.StandardLogger())
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("postgre storage database migrate set dialect: %w", err)
+	}
+
+	if err := goose.UpContext(ctx, ls.db.DB, "migrations"); err != nil {
+		return fmt.Errorf("postgre storage database migrate up: %w", err)
+	}
+
+	return nil
 }
 
 func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {

@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/keycubasic/shortener/internal/dao"
-	json "github.com/mailru/easyjson"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type database interface {
 	GetLink(ctx context.Context, key string) (string, error)

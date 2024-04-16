@@ -9,16 +9,19 @@ import (
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/mapper"
+	log "github.com/sirupsen/logrus"
 )
 
 type configuration interface {
 	GetBaseURL() string
 	GetBufferSize() int
 	GetTickerSeconds() int
+	GetClosingDuration() int
 }
 
-//go:generate mockgen -source app.go -destination mock_storage.go -package mock database
+//go:generate mockgen -source app.go -destination mock_storage.go -package mock Database
 type Database interface {
+	Migrate(ctx context.Context) error
 	GetLink(ctx context.Context, key string) (string, error)
 	SetLink(ctx context.Context, userID int, key, link string) error
 	GetShortLink(ctx context.Context, link string) (string, error)
@@ -139,20 +142,30 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 	}
 }
 
+func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) {
+	if len(linksDao) > 0 {
+		a.db.DeleteShortLinksBatch(ctx, linksDao)
+	}
+}
+
 func (a *App) batchDelete(ctx context.Context) {
 	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerSeconds()) * time.Second)
 	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
 
 	for {
 		select {
+		case <-ctx.Done():
+			ctxClosing, closingCancel := context.
+				WithTimeout(context.Background(), time.Duration(a.cfg.GetClosingDuration()))
+			defer closingCancel()
+
+			a.deleteShortLinksBatch(ctxClosing, linksDao)
+			log.Info("Goroutine batchDelete stops")
+			return
 		case linkDao := <-a.linkCh:
 			linksDao = append(linksDao, &linkDao)
 		case <-ticker.C:
-			if len(linksDao) == 0 {
-				continue
-			}
-
-			a.db.DeleteShortLinksBatch(ctx, linksDao)
+			a.deleteShortLinksBatch(ctx, linksDao)
 			linksDao = nil
 		}
 	}

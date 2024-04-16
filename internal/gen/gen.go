@@ -16,6 +16,5 @@ func GenKey(link string) string {
 	md5checksum := md5.Sum([]byte(link))
 	base64encoded := base64.URLEncoding.EncodeToString([]byte(md5checksum[:]))
 	base64encoded = re.ReplaceAllString(base64encoded, "")
-	key := base64encoded[:8]
-	return key
+	return base64encoded[:8]
 }
