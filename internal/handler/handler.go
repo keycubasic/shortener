@@ -16,6 +16,7 @@ import (
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
 	"github.com/keycubasic/shortener/internal/storage"
+	_ "github.com/mailru/easyjson"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
