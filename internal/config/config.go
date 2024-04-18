@@ -19,6 +19,7 @@ type Cfg struct {
 	closingDuration int
 }
 
+// NewCfg creates a new Cfg object
 func NewCfg() *Cfg {
 	return new(Cfg)
 }

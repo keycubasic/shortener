@@ -68,6 +68,7 @@ func (c *compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close
 func (c *compressReader) Close() error {
 	if err := c.ReadCloser.Close(); err != nil {
 		return fmt.Errorf("compressor close reader: %w", err)
