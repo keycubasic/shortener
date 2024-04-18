@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -46,8 +45,12 @@ func TestPing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := app.Ping(ctx); (err != nil) != tt.wantErr {
-				t.Errorf("App.Ping() error = %v, wantErr %v", err, tt.wantErr)
+			err := app.Ping(ctx)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -91,12 +94,11 @@ func TestGetLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := app.GetLink(ctx, tt.shortLink)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("App.GetLink() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("App.GetLink() = %v, want %v", got, tt.want)
+			if !tt.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "GetLink() = %v, want %v", got, tt.want)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -144,9 +146,9 @@ func TestCreateShortLink(t *testing.T) {
 
 			if !tt.wantErr {
 				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "CreateShortLink() = %v, want %v", got, tt.want)
 			} else {
 				require.Error(t, err)
-				assert.Equal(t, got, tt.want, "CreateShortLink() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -188,12 +190,12 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := app.GetShortLink(ctx, tt.link)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("App.GetShortLink() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("App.GetShortLink() = %v, want %v", got, tt.want)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "GetShortLink() = %v, want %v", got, tt.want)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -241,13 +243,12 @@ func TestCreateShortLinksBatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := app.CreateShortLinksBatch(ctx, 0, reqlinksDto)
-			t.Log(got)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("App.CreateShortLinksBatch() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("App.CreateShortLinksBatch() = %v, want %v", got, tt.want)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "CreateShortLinksBatch() = %v, want %v", got, tt.want)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -285,12 +286,12 @@ func TestAddUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := app.AddUser(ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("App.AddUser() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("App.AddUser() = %v, want %v", got, tt.want)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "AddUser() = %v, want %v", got, tt.want)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}
@@ -335,12 +336,12 @@ func TestGetUserURLs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := app.GetUserURLs(ctx, 1)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("App.GetUserURLs() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("App.GetUserURLs() = %v, want %v", got, tt.want)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				assert.Equal(t, got, tt.want, "GetUserURLs() = %v, want %v", got, tt.want)
+			} else {
+				require.Error(t, err)
 			}
 		})
 	}

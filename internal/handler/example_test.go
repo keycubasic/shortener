@@ -32,7 +32,8 @@ func ExampleURLHandler_getOriginalURL() {
 	}
 
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
+	
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -50,7 +51,8 @@ func ExampleURLHandler_shortenURL() {
 	}
 
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
+
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -69,7 +71,8 @@ func ExampleURLHandler_shortenURLJSON() {
 	}
 
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
+
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -104,7 +107,8 @@ func ExampleURLHandler_shortenURLJSONBatch() {
 	}
 
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
+
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -129,7 +133,7 @@ func ExampleURLHandler_getUserURLs() {
 	}
 
 	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
 
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
