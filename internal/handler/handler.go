@@ -1,3 +1,4 @@
+// Package handler contains handlers and starts the server.
 package handler
 
 import (
@@ -32,27 +33,45 @@ const (
 	unexpectedError = "unexpected error occurred. try again"
 )
 
+// Interface of configuration
 type configuration interface {
+	// GetAddress returns the application's launch address.
 	GetAddress() string
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetFilePath returns the path to the storage file.
 	GetFilePath() string
+	// GetSecretKey returns the secret key.
 	GetSecretKey() string
+	// GetBufferSize returns the buffer size for batch deletion of links.
 	GetBufferSize() int
+	// GetTickerSeconds returns the frequency of running the link removal routine.
 	GetTickerSeconds() int
+	// GetClosingDuration returns the duration of the application's termination timeout.
 	GetClosingDuration() int
 }
 
+// Interface of application
 type application interface {
+	// Ping checks the availability of the data store.
 	Ping(ctx context.Context) error
+	// GetLink returns the original link by its shortening.
 	GetLink(ctx context.Context, key string) (string, error)
+	// CreateShortLink сreates a shortening for a link.
 	CreateShortLink(ctx context.Context, userID int, link string) (string, error)
+	// GetShortLink returns the shortening of the original link.
 	GetShortLink(ctx context.Context, link string) (string, error)
+	// CreateShortLinksBatch creates shortenings for links in batch mode.
 	CreateShortLinksBatch(ctx context.Context, userID int, linksDto dto.LinksDto) (dto.LinksDto, error)
+	// AddUser adds a new user.
 	AddUser(ctx context.Context) (int, error)
+	// GetUserURLs returns user URLs.
 	GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
+	// AppendChan sends links marked for deletion to the channel for further processing.
 	AppendChan(ctx context.Context, userID int, links dto.Slice)
 }
 
+// URLHandler stores interfaces for the configuration and functions of the application.
 type URLHandler struct {
 	cfg configuration
 	app application
@@ -63,6 +82,7 @@ func newURLHandler(cfg configuration, app application) *URLHandler {
 	return &URLHandler{cfg: cfg, app: app}
 }
 
+// pingDB checks the availability of the data store.
 func (h *URLHandler) pingDB(w http.ResponseWriter, r *http.Request) {
 	if err := h.app.Ping(r.Context()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -72,6 +92,7 @@ func (h *URLHandler) pingDB(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// getOriginalURL returns the original link by its shortening.
 func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, err := h.app.GetLink(r.Context(), id)
@@ -91,6 +112,7 @@ func (h *URLHandler) getOriginalURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 }
 
+// getUserURLs returns user URLs in JSON format.
 func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.authUser(r)
 	if err != nil {
@@ -124,6 +146,7 @@ func (h *URLHandler) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// shortenURL сreates a shortening for a link and returns it.
 func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
 	if err != nil {
@@ -173,6 +196,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// shortenURL сreates a shortening for a link and returns it in JSON format.
 func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
 	if err != nil {
@@ -232,6 +256,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// shortenURL сreates a shortenings for a links in batch mode and returns it in JSON format.
 func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.getUserID(w, r)
 	if err != nil {
@@ -272,6 +297,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// deleteUserURLs deletes link-shortening pairs.
 func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	userID, err := h.authUser(r)
 	if err != nil {
@@ -298,6 +324,7 @@ func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// getUserID returns authorized user ID.
 func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
 	ctx := r.Context()
 	token, claims, err := auth.FromContext(ctx)
@@ -336,6 +363,7 @@ func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID i
 	return
 }
 
+// authUser authorizes the user.
 func (h *URLHandler) authUser(r *http.Request) (userID int, err error) {
 	token, claims, err := auth.FromContext(r.Context())
 	if err != nil {
@@ -357,6 +385,7 @@ func (h *URLHandler) authUser(r *http.Request) (userID int, err error) {
 	return
 }
 
+// getRouter returns the configured router.
 func (h *URLHandler) getRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Gzip)
@@ -377,6 +406,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
+// RunServer starts the server.
 func RunServer(ctx context.Context, cfg configuration, app application) {
 	h := newURLHandler(cfg, app)
 	r := h.getRouter()

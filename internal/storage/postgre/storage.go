@@ -1,3 +1,4 @@
+// Package postgre contains functions for working with the PostgreSQL database.
 package postgre
 
 import (
@@ -22,11 +23,15 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// Interface of configuration
 type configuration interface {
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetDatabaseDSN returns the database connection string.
 	GetDatabaseDSN() string
 }
 
+// Links stores the application configuration and database engine.
 type Links struct {
 	cfg configuration
 	db  *sqlx.DB
@@ -47,6 +52,7 @@ func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) 
 	return &Links{cfg: cfg, db: db}, nil
 }
 
+// Migrate migrates database objects.
 func (ls Links) Migrate(ctx context.Context) error {
 	goose.SetBaseFS(embedMigrations)
 	goose.SetLogger(log.StandardLogger())
@@ -62,6 +68,7 @@ func (ls Links) Migrate(ctx context.Context) error {
 	return nil
 }
 
+// GetLink returns the original shortened link from the database.
 func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	row := ls.db.QueryRowContext(ctx, `
 		SELECT original_url, is_deleted FROM links WHERE short_url = $1
@@ -83,6 +90,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 
+// SetLink sets a new link-shortening pair to the database.
 func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) error {
 	if _, err := ls.db.ExecContext(ctx, `
 		INSERT INTO links (user_id, short_url, original_url) VALUES ($1,$2,$3)
@@ -100,6 +108,7 @@ func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) erro
 	return nil
 }
 
+// GetShortLink returns the shortening of the original link from the database.
 func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) {
 	row := ls.db.QueryRowContext(ctx, `
 		SELECT short_url FROM links WHERE original_url = $1
@@ -114,14 +123,17 @@ func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) 
 	return val, nil
 }
 
+// Close closes the connection to the database.
 func (ls *Links) Close() error {
 	return ls.db.Close()
 }
 
+// PingContext checks the database connection.
 func (ls *Links) PingContext(ctx context.Context) error {
 	return ls.db.PingContext(ctx)
 }
 
+// CreateShortLinksBatch creates link-shortening pairs in the database in batches.
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	for _, linkDao := range linksDao {
 		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
@@ -142,6 +154,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	return linksDao, nil
 }
 
+// AddUser adds a new user to the database.
 func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	err = ls.db.QueryRowContext(ctx, `
 		INSERT INTO users DEFAULT VALUES RETURNING user_id
@@ -152,6 +165,7 @@ func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	return
 }
 
+// GetUserURLs returns user URLs from the database.
 func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDaoBatch, err error) {
 	rows, err := ls.db.QueryContext(ctx, `
 		SELECT short_url, original_url FROM links WHERE user_id = $1
@@ -178,6 +192,7 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 	return
 }
 
+// DeleteShortLinksBatch sets the deletion flag on links in batch mode.
 func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
 	var values []string
 	var args []any

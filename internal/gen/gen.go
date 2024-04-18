@@ -1,3 +1,4 @@
+// Package gen contains a function to generate an shortening.
 package gen
 
 import (
@@ -12,6 +13,7 @@ func init() {
 	re = regexp.MustCompile("[+/=_]")
 }
 
+// GenKey generates the shortening.
 func GenKey(link string) string {
 	md5checksum := md5.Sum([]byte(link))
 	base64encoded := base64.URLEncoding.EncodeToString([]byte(md5checksum[:]))

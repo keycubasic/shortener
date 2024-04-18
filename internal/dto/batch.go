@@ -1,12 +1,13 @@
+// Package dto contains data transfer objects for batch processing.
 package dto
 
-//easyjson:json
+// Slice stores a slice of links for batch processing.
 type Slice []string
 
-//easyjson:json
+// LinksDto stores a slice of data transfer objects.
 type LinksDto []LinkDto
 
-//easyjson:json
+// LinkDto stores the data transfer object.
 type LinkDto struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 	OriginalURL   string `json:"original_url,omitempty"`

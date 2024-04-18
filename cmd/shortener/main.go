@@ -1,3 +1,4 @@
+// Main package of application
 package main
 
 import (

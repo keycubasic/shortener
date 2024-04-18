@@ -1,11 +1,12 @@
+// Package config contains functions for working with application configuration.
 package config
 
 import (
-	"encoding/json"
 	"flag"
 	"os"
 )
 
+// Cfg stores the application configuration.
 type Cfg struct {
 	address         string
 	baseURL         string
@@ -21,68 +22,63 @@ func NewCfg() *Cfg {
 	return new(Cfg)
 }
 
+// GetAddress returns the application's launch address.
 func (c *Cfg) GetAddress() string {
 	return c.address
 }
 
-func (c *Cfg) SetAddress(address string) {
-	c.address = address
-}
-
+// GetBaseURL returns the base address of the redirection service.
 func (c *Cfg) GetBaseURL() string {
 	return c.baseURL
 }
 
+// SetBaseURL sets the base address of the redirection service.
 func (c *Cfg) SetBaseURL(baseURL string) {
 	c.baseURL = baseURL
 }
 
+// GetFilePath returns the path to the storage file.
 func (c *Cfg) GetFilePath() string {
 	return c.filePath
 }
 
-func (c *Cfg) SetFilePath(filePath string) {
-	c.filePath = filePath
-}
-
+// GetDatabaseDSN returns the database connection string.
 func (c *Cfg) GetDatabaseDSN() string {
 	return c.databaseDSN
 }
 
-func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
-	c.databaseDSN = databaseDSN
-}
-
+// GetSecretKey returns the secret key.
 func (c *Cfg) GetSecretKey() string {
 	return c.secretKey
 }
 
-func (c *Cfg) SetSecretKey(secretKey string) {
-	c.secretKey = secretKey
-}
-
+// GetBufferSize returns the buffer size for batch deletion of links.
 func (c *Cfg) GetBufferSize() int {
 	return c.bufferSize
 }
 
+// SetBufferSize sets the buffer size for batch deletion of links.
 func (c *Cfg) SetBufferSize(bufferSize int) {
 	c.bufferSize = bufferSize
 }
 
+// GetTickerSeconds returns the frequency of running the link removal routine.
 func (c *Cfg) GetTickerSeconds() int {
 	return c.tickerSeconds
 }
 
+// SetTickerSeconds sets the frequency of running the link removal routine.
 func (c *Cfg) SetTickerSeconds(tickerSeconds int) {
 	c.tickerSeconds = tickerSeconds
 }
 
+// GetClosingDuration returns the duration of the application's termination timeout.
 func (c *Cfg) GetClosingDuration() int {
 	return c.closingDuration
 }
 
+// ParseCfg parses the application configuration.
 func (c *Cfg) ParseCfg() {
-	usage([]byte{})
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
 	}
@@ -132,8 +128,4 @@ func (c *Cfg) ParseCfg() {
 	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
 		c.secretKey = t
 	}
-}
-
-func usage(data []byte) {
-	json.Valid(data) // stub for pass tests
 }

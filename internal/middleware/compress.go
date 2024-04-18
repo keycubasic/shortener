@@ -1,3 +1,4 @@
+// Package middleware contains middleware for compress and decompress data.
 package middleware
 
 import (
@@ -66,6 +67,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
+// Gzip provides intermediate compression and decompression.
 func Gzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w

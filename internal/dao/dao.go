@@ -1,10 +1,13 @@
+// Package dao contains data access objects.
 package dao
 
-// go:generate easyjson -all dao.go
+// LinksDao stores a slice of data access objects.
 type LinksDao []*LinkDao
 
+// LinksDaoBatch stores a slice of batch processing data access objects.
 type LinksDaoBatch []*LinkDaoBatch
 
+// LinkDao stores a data access object.
 type LinkDao struct {
 	UUID          int    `json:"uuid"`
 	ShortURL      string `json:"short_url" db:"short_url"`
@@ -14,6 +17,7 @@ type LinkDao struct {
 	DeletedFlag   bool   `json:"-"`
 }
 
+// LinkDaoBatch stores a batch data access object.
 type LinkDaoBatch struct {
 	ShortURL    string
 	OriginalURL string

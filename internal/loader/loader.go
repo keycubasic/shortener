@@ -1,3 +1,4 @@
+// Package loader contains functions for working with file storage.
 package loader
 
 import (
@@ -13,11 +14,15 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
+// Interface of database
 type database interface {
+	// GetLink returns the original shortened link from the database.
 	GetLink(ctx context.Context, key string) (string, error)
+	// SetLink sets a new link-shortening pair to the database.
 	SetLink(ctx context.Context, userID int, key, link string) error
 }
 
+// Producer stores the file and writer.
 type Producer struct {
 	file   *os.File
 	writer *bufio.Writer
@@ -35,6 +40,7 @@ func NewProducer(fname string) (*Producer, error) {
 	}, nil
 }
 
+// Save saves the data to a file.
 func (p *Producer) Save(_ context.Context, id int, key, link string) error {
 	linkDao := dao.NewLinkDao()
 	linkDao.UUID = id
@@ -57,10 +63,12 @@ func (p *Producer) Save(_ context.Context, id int, key, link string) error {
 	return p.writer.Flush()
 }
 
+// Close closes the file.
 func (p *Producer) Close() error {
 	return p.file.Close()
 }
 
+// Consumer stores the database interface, file and data scanner.
 type Consumer struct {
 	db      database
 	file    *os.File
@@ -80,6 +88,7 @@ func NewConsumer(db database, fname string) (*Consumer, error) {
 	}, nil
 }
 
+// Load loads data from a file into the database.
 func (c *Consumer) Load(ctx context.Context) error {
 	for c.scanner.Scan() {
 		linkDao := dao.NewLinkDao()
@@ -95,6 +104,7 @@ func (c *Consumer) Load(ctx context.Context) error {
 	return nil
 }
 
+// Close closes the file.
 func (c *Consumer) Close() error {
 	return c.file.Close()
 }

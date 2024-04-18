@@ -3,31 +3,70 @@ package app
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/keycubasic/shortener/internal/config"
-	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/keycubasic/shortener/internal/dao"
+	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/storage/mock"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetLinkMap(t *testing.T) {
-	link := "https://practicum.yandex.ru"
+var errTest = errors.New("oops")
+
+func TestPing(t *testing.T) {
 	ctx := context.Background()
 	cfg := config.NewCfg()
-	db, err := storage.NewLinks(ctx, cfg)
-	if err != nil {
-		log.Fatal(err.Error())
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().PingContext(gomock.Any()).Return(nil)
+	mock.EXPECT().PingContext(gomock.Any()).Return(errTest)
+
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "TestPingOK",
+			wantErr: false,
+		},
+		{
+			name:    "TestPingKO",
+			wantErr: true,
+		},
 	}
 
-	app := NewApp(ctx, cfg, db)
-	shortLink, err := app.CreateShortLink(ctx, 1, link)
-	if err != nil {
-		log.Fatal(err.Error())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := app.Ping(ctx); (err != nil) != tt.wantErr {
+				t.Errorf("App.Ping() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
+}
+
+func TestGetLink(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.NewCfg()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	shortLink := "a9tbDian"
+	link := "https://practicum.yandex.ru"
+
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().GetLink(gomock.Any(), shortLink).Return(link, nil)
+	mock.EXPECT().GetLink(gomock.Any(), shortLink).Return("", errTest)
+	app := NewApp(ctx, cfg, mock)
 
 	tests := []struct {
 		name      string
@@ -36,14 +75,14 @@ func TestGetLinkMap(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name:      "TestGetLinkMapOK",
+			name:      "TestGetLinkOK",
 			shortLink: shortLink,
 			want:      link,
 			wantErr:   false,
 		},
 		{
-			name:      "TestGetLinkMapKO",
-			shortLink: "wrongShortLink",
+			name:      "TestGetLinkKO",
+			shortLink: shortLink,
 			want:      "",
 			wantErr:   true,
 		},
@@ -63,15 +102,21 @@ func TestGetLinkMap(t *testing.T) {
 	}
 }
 
-func TestCreateShortLinkMap(t *testing.T) {
+func TestCreateShortLink(t *testing.T) {
 	ctx := context.Background()
 	cfg := config.NewCfg()
-	db, err := storage.NewLinks(ctx, cfg)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 
-	app := NewApp(ctx, cfg, db)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	key := "a9tbDian"
+	link := "https://practicum.yandex.ru"
+
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().SetLink(gomock.Any(), 1, key, link).Return(nil)
+	mock.EXPECT().SetLink(gomock.Any(), 1, key, link).Return(errTest)
+
+	app := NewApp(ctx, cfg, mock)
 
 	tests := []struct {
 		name    string
@@ -80,14 +125,14 @@ func TestCreateShortLinkMap(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "TestCreateShortLinkMapOK",
-			link:    "https://practicum.yandex.ru",
-			want:    "a9tbDian",
+			name:    "TestCreateShortLinkOK",
+			link:    link,
+			want:    key,
 			wantErr: false,
 		},
 		{
-			name:    "TestCreateShortLinkMapKO",
-			link:    "https://practicum.yandex.ru",
+			name:    "TestCreateShortLinkKO",
+			link:    link,
 			want:    "",
 			wantErr: true,
 		},
@@ -95,7 +140,7 @@ func TestCreateShortLinkMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := app.CreateShortLink(ctx, 0, tt.link)
+			got, err := app.CreateShortLink(ctx, 1, tt.link)
 
 			if !tt.wantErr {
 				require.NoError(t, err)
@@ -107,55 +152,19 @@ func TestCreateShortLinkMap(t *testing.T) {
 	}
 }
 
-func TestPingDB(t *testing.T) {
-	ctx := context.Background()
-	cfg := config.NewCfg()
-
-	ctrlDB := gomock.NewController(t)
-	defer ctrlDB.Finish()
-
-	mockDB := mock.NewMockDatabase(ctrlDB)
-	mockDB.EXPECT().PingContext(gomock.Any()).Return(nil)
-	mockDB.EXPECT().PingContext(gomock.Any()).Return(errors.New("oops!"))
-
-	app := NewApp(ctx, cfg, mockDB)
-
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			name:    "TestPingDBOK",
-			wantErr: false,
-		},
-		{
-			name:    "TestPingDBKO",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := app.Ping(ctx); (err != nil) != tt.wantErr {
-				t.Errorf("App.Ping() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGetShortLinkDB(t *testing.T) {
+func TestGetShortLink(t *testing.T) {
 	link := "https://practicum.yandex.ru"
 	ctx := context.Background()
 	cfg := config.NewCfg()
 
-	ctrlDB := gomock.NewController(t)
-	defer ctrlDB.Finish()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	mockDB := mock.NewMockDatabase(ctrlDB)
-	mockDB.EXPECT().GetShortLink(gomock.Any(), gomock.Any()).Return(gomock.Any().String(), nil)
-	mockDB.EXPECT().GetShortLink(gomock.Any(), gomock.Any()).Return("", errors.New("oops!"))
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().GetShortLink(gomock.Any(), gomock.Any()).Return(gomock.Any().String(), nil)
+	mock.EXPECT().GetShortLink(gomock.Any(), gomock.Any()).Return("", errTest)
 
-	app := NewApp(ctx, cfg, mockDB)
+	app := NewApp(ctx, cfg, mock)
 
 	tests := []struct {
 		name    string
@@ -164,13 +173,13 @@ func TestGetShortLinkDB(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "TestGetShortLinkDBOK",
+			name:    "TestGetShortLinkOK",
 			link:    link,
 			want:    gomock.Any().String(),
 			wantErr: false,
 		},
 		{
-			name:    "TestGetShortLinkDBKO",
+			name:    "TestGetShortLinkKO",
 			link:    link,
 			want:    "",
 			wantErr: true,
@@ -186,6 +195,188 @@ func TestGetShortLinkDB(t *testing.T) {
 			if got != tt.want {
 				t.Errorf("App.GetShortLink() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestCreateShortLinksBatch(t *testing.T) {
+	reqlink := "https://practicum.yandex.ru"
+	resLink := "http://localhost:8080/a9tbDian"
+	ctx := context.Background()
+	cfg := config.NewCfg()
+	cfg.SetBaseURL("http://localhost:8080")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	reqlinksDto := make(dto.LinksDto, 0)
+	reqlinksDto = append(reqlinksDto, dto.LinkDto{CorrelationID: "0", OriginalURL: reqlink})
+	resLinksDto := make(dto.LinksDto, 0)
+	resLinksDto = append(resLinksDto, dto.LinkDto{CorrelationID: "0", ShortURL: resLink})
+	reqlinksDao := make(dao.LinksDao, 0)
+	reqlinksDao = append(reqlinksDao, &dao.LinkDao{UUID: 0, CorrelationID: "0", OriginalURL: reqlink})
+	resLinksDao := make(dao.LinksDao, 0)
+	resLinksDao = append(resLinksDao, &dao.LinkDao{UUID: 0, CorrelationID: "0", ShortURL: "a9tbDian"})
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().CreateShortLinksBatch(gomock.Any(), 0, reqlinksDao).Return(resLinksDao, nil)
+	mock.EXPECT().CreateShortLinksBatch(gomock.Any(), 0, reqlinksDao).Return(nil, errTest)
+
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name    string
+		want    dto.LinksDto
+		wantErr bool
+	}{
+		{
+			name:    "TestCreateShortLinksBatchOK",
+			want:    resLinksDto,
+			wantErr: false,
+		},
+		{
+			name:    "TestCreateShortLinksBatchKO",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := app.CreateShortLinksBatch(ctx, 0, reqlinksDto)
+			t.Log(got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("App.CreateShortLinksBatch() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("App.CreateShortLinksBatch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAddUser(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.NewCfg()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().AddUser(gomock.Any()).Return(1, nil)
+	mock.EXPECT().AddUser(gomock.Any()).Return(0, errTest)
+
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name    string
+		want    int
+		wantErr bool
+	}{
+		{
+			name:    "TestAddUserOK",
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "TestAddUserKO",
+			want:    0,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := app.AddUser(ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("App.AddUser() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("App.AddUser() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetUserURLs(t *testing.T) {
+	originalURL := "https://practicum.yandex.ru"
+	shortening := "a9tbDian"
+	shortURL := "http://localhost:8080/a9tbDian"
+	ctx := context.Background()
+	cfg := config.NewCfg()
+	cfg.SetBaseURL("http://localhost:8080")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	linksDao := make(dao.LinksDaoBatch, 0)
+	linksDao = append(linksDao, &dao.LinkDaoBatch{ShortURL: shortening, OriginalURL: originalURL})
+	linksDto := make(dto.LinksDto, 0)
+	linksDto = append(linksDto, dto.LinkDto{ShortURL: shortURL, OriginalURL: originalURL})
+	mock := mock.NewMockDatabase(ctrl)
+	mock.EXPECT().GetUserURLs(gomock.Any(), 1).Return(linksDao, nil)
+	mock.EXPECT().GetUserURLs(gomock.Any(), 1).Return(nil, errTest)
+
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name    string
+		want    dto.LinksDto
+		wantErr bool
+	}{
+		{
+			name:    "TestGetUserURLsOK",
+			want:    linksDto,
+			wantErr: false,
+		},
+		{
+			name:    "TestGetUserURLsKO",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := app.GetUserURLs(ctx, 1)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("App.GetUserURLs() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("App.GetUserURLs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAppendChan(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.NewCfg()
+	cfg.SetTickerSeconds(1)
+	cfg.SetBufferSize(1)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	slice := []string{"6YGS4ZUF", "rntA0dVu", "Yi66Tx-0", "s7L9TR66"}
+	mock := mock.NewMockDatabase(ctrl)
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name    string
+		want    dto.Slice
+		wantErr bool
+	}{
+		{
+			name:    "TestAppendChanOK",
+			want:    slice,
+			wantErr: false,
+		},
+		{
+			name:    "TestAppendChanKO",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app.AppendChan(ctx, 1, slice)
 		})
 	}
 }

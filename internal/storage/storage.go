@@ -1,3 +1,4 @@
+// Package storage contains functions for working with a hash table.
 package storage
 
 import (
@@ -15,15 +16,21 @@ import (
 )
 
 var (
+	// ErrUniqueViolation storage unique violation error.
 	ErrUniqueViolation = errors.New("storage unique violation")
-	ErrGone            = errors.New("link already gone")
+	// ErrGone link already gone error.
+	ErrGone = errors.New("link already gone")
 )
 
+// Interface of configuration
 type configuration interface {
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetFilePath returns the path to the storage file.
 	GetFilePath() string
 }
 
+// Links stores the mutex, application configuration, hash table and file storage producer.
 type Links struct {
 	sync.RWMutex
 	cfg      configuration
@@ -64,6 +71,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	return ls, nil
 }
 
+// GetLink returns the original link by its shortening from the hash table.
 func (ls *Links) GetLink(_ context.Context, key string) (string, error) {
 	ls.RLock()
 	defer ls.RUnlock()
@@ -77,6 +85,7 @@ func (ls *Links) GetLink(_ context.Context, key string) (string, error) {
 	return val, nil
 }
 
+// SetLink sets a new link-shortenening pair to the hash table.
 func (ls *Links) SetLink(ctx context.Context, userID int, key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
@@ -98,6 +107,7 @@ func (ls *Links) SetLink(ctx context.Context, userID int, key string, link strin
 	return nil
 }
 
+// GetShortLink returns the shortening of the original link from the hash table.
 func (ls *Links) GetShortLink(_ context.Context, link string) (string, error) {
 	for k, v := range ls.links {
 		if v == link {
@@ -121,6 +131,7 @@ func (ls *Links) PingContext(_ context.Context) error {
 	return nil
 }
 
+// CreateShortLinksBatch creates link-shortening pairs in a hash table in batch mode.
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	ls.Lock()
 	defer ls.Unlock()
@@ -148,12 +159,6 @@ func (ls *Links) AddUser(_ context.Context) (int, error) {
 func (ls *Links) GetUserURLs(_ context.Context, _ int) (dao.LinksDaoBatch, error) {
 	// for implementation support
 	linksDao := make([]*dao.LinkDaoBatch, 0)
-	/*for k, v := range ls.links {
-		linkDao := dao.NewLinkDao()
-		linkDao.ShortURL = k
-		linkDao.OriginalURL = v
-		linksDao = append(linksDao, linkDao)
-	}*/
 	return linksDao, nil
 }
 

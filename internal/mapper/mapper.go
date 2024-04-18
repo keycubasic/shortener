@@ -1,3 +1,4 @@
+// Package mapper contains functions for mapping data objects.
 package mapper
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/keycubasic/shortener/internal/dto"
 )
 
+// LinkDtoToLinkDao converts a data transfer object into a data access object.
 func LinkDtoToLinkDao(linkDto dto.LinkDto) *dao.LinkDao {
 	linkDao := dao.NewLinkDao()
 	linkDao.CorrelationID = linkDto.CorrelationID
@@ -14,6 +16,7 @@ func LinkDtoToLinkDao(linkDto dto.LinkDto) *dao.LinkDao {
 	return linkDao
 }
 
+// LinkDaoToLinkDto converts a data access object into a data transfer object.
 func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 	linkDto := dto.NewLinkDto()
 	linkDto.CorrelationID = linkDao.CorrelationID
@@ -21,6 +24,7 @@ func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 	return linkDto
 }
 
+// LinkDaoToLinkDtoURLs converts a batch data access object into a data transfer object.
 func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto {
 	linkDto := dto.NewLinkDto()
 	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
@@ -28,6 +32,7 @@ func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto
 	return linkDto
 }
 
+// LinkToLinkDao converts the user ID and link into a data access object.
 func LinkToLinkDao(userID int, link string) *dao.LinkDao {
 	linkDao := dao.NewLinkDao()
 	linkDao.UserID = userID

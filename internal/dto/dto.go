@@ -1,10 +1,12 @@
+// Package dto contains data transfer objects.
 package dto
 
-// go:generate easyjson -all dto.go
+// Request stores the request object.
 type Request struct {
 	URL string `json:"url"`
 }
 
+// Response stores the response object.
 type Response struct {
 	SortenURL string `json:"result"`
 }
