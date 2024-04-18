@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Variables
 var (
 	// ErrUniqueViolation storage unique violation error.
 	ErrUniqueViolation = errors.New("storage unique violation")
@@ -38,6 +39,7 @@ type Links struct {
 	producer *loader.Producer
 }
 
+// NewLinks creates a new Links object
 func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	ls := &Links{
 		cfg:   cfg,
@@ -117,15 +119,18 @@ func (ls *Links) GetShortLink(_ context.Context, link string) (string, error) {
 	return "", fmt.Errorf("storage shortlink not found")
 }
 
+// count
 func (ls *Links) count() int {
 	return len(ls.links)
 }
 
+// Close
 func (ls *Links) Close() error {
 	// for implementation support
 	return nil
 }
 
+// PingContext
 func (ls *Links) PingContext(_ context.Context) error {
 	// for implementation support
 	return nil
@@ -151,22 +156,26 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	return linksDao, nil
 }
 
+// AddUser
 func (ls *Links) AddUser(_ context.Context) (int, error) {
 	// for implementation support
 	return 1, nil
 }
 
+// GetUserURLs
 func (ls *Links) GetUserURLs(_ context.Context, _ int) (dao.LinksDaoBatch, error) {
 	// for implementation support
 	linksDao := make([]*dao.LinkDaoBatch, 0)
 	return linksDao, nil
 }
 
+// DeleteShortLinksBatch
 func (ls *Links) DeleteShortLinksBatch(_ context.Context, _ dao.LinksDao) error {
 	// for implementation support
 	return nil
 }
 
+// Migrate
 func (ls *Links) Migrate(_ context.Context) error {
 	// for implementation support
 	return nil

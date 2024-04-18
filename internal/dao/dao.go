@@ -24,6 +24,7 @@ type LinkDaoBatch struct {
 	DeletedFlag bool
 }
 
+// NewLinkDao creates a new LinkDao object
 func NewLinkDao() *LinkDao {
 	return new(LinkDao)
 }

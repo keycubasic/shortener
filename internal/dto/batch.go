@@ -14,6 +14,7 @@ type LinkDto struct {
 	ShortURL      string `json:"short_url,omitempty"`
 }
 
+// NewLinkDto creates a new LinkDto object
 func NewLinkDto() *LinkDto {
 	return new(LinkDto)
 }

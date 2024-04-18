@@ -59,6 +59,7 @@ type App struct {
 	linkCh chan dao.LinkDao
 }
 
+// NewApp creates a new App object
 func NewApp(ctx context.Context, cfg configuration, db Database) *App {
 	bufferSize := cfg.GetBufferSize()
 

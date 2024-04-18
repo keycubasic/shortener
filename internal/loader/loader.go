@@ -28,6 +28,7 @@ type Producer struct {
 	writer *bufio.Writer
 }
 
+// NewProducer creates a new Producer object
 func NewProducer(fname string) (*Producer, error) {
 	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
 	if err != nil {
@@ -75,6 +76,7 @@ type Consumer struct {
 	scanner *bufio.Scanner
 }
 
+// NewConsumer creates a new Consumer object
 func NewConsumer(db database, fname string) (*Consumer, error) {
 	file, err := os.OpenFile(fname, os.O_RDONLY|os.O_CREATE, 0o666)
 	if err != nil {

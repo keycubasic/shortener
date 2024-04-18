@@ -37,6 +37,7 @@ type Links struct {
 	db  *sqlx.DB
 }
 
+// NewLinks creates a new Links object
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
 	log.Info("Database DSN:", cfg.GetDatabaseDSN())
 	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())

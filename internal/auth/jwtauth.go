@@ -12,6 +12,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
+// JWTAuth struct
 type JWTAuth struct {
 	alg             jwa.SignatureAlgorithm
 	signKey         interface{} // private-key
@@ -20,11 +21,13 @@ type JWTAuth struct {
 	validateOptions []jwt.ValidateOption
 }
 
+// Variables
 var (
 	TokenCtxKey = &contextKey{"Token"}
 	ErrorCtxKey = &contextKey{"Error"}
 )
 
+// Variables
 var (
 	ErrUnauthorized = errors.New("token is unauthorized")
 	ErrExpired      = errors.New("token is expired")
@@ -34,6 +37,7 @@ var (
 	ErrAlgoInvalid  = errors.New("algorithm mismatch")
 )
 
+// New creates a new JWTAuth object
 func New(alg string, signKey interface{}, verifyKey interface{}, validateOptions ...jwt.ValidateOption) *JWTAuth {
 	ja := &JWTAuth{
 		alg:             jwa.SignatureAlgorithm(alg),
@@ -70,6 +74,7 @@ func Verifier(ja *JWTAuth) func(http.Handler) http.Handler {
 	return Verify(ja, TokenFromHeader, TokenFromCookie)
 }
 
+// Verify
 func Verify(ja *JWTAuth, findTokenFns ...func(r *http.Request) string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		hfn := func(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +87,7 @@ func Verify(ja *JWTAuth, findTokenFns ...func(r *http.Request) string) func(http
 	}
 }
 
+// VerifyRequest
 func VerifyRequest(ja *JWTAuth, r *http.Request, findTokenFns ...func(r *http.Request) string) (jwt.Token, error) {
 	var tokenString string
 
@@ -101,6 +107,7 @@ func VerifyRequest(ja *JWTAuth, r *http.Request, findTokenFns ...func(r *http.Re
 	return VerifyToken(ja, tokenString)
 }
 
+// VerifyToken
 func VerifyToken(ja *JWTAuth, tokenString string) (jwt.Token, error) {
 	// Decode & verify the token
 	token, err := ja.Decode(tokenString)
@@ -120,6 +127,7 @@ func VerifyToken(ja *JWTAuth, tokenString string) (jwt.Token, error) {
 	return token, nil
 }
 
+// Encode
 func (ja *JWTAuth) Encode(claims map[string]interface{}) (t jwt.Token, tokenString string, err error) {
 	t = jwt.New()
 	for k, v := range claims {
@@ -133,18 +141,22 @@ func (ja *JWTAuth) Encode(claims map[string]interface{}) (t jwt.Token, tokenStri
 	return
 }
 
+// Decode
 func (ja *JWTAuth) Decode(tokenString string) (jwt.Token, error) {
 	return ja.parse([]byte(tokenString))
 }
 
+// ValidateOptions
 func (ja *JWTAuth) ValidateOptions() []jwt.ValidateOption {
 	return ja.validateOptions
 }
 
+// sign
 func (ja *JWTAuth) sign(token jwt.Token) ([]byte, error) {
 	return jwt.Sign(token, jwt.WithKey(ja.alg, ja.signKey))
 }
 
+// parse
 func (ja *JWTAuth) parse(payload []byte) (jwt.Token, error) {
 	// we disable validation here because we use jwt.Validate to validate tokens
 	return jwt.Parse(payload, ja.verifier, jwt.WithValidate(false))
@@ -190,12 +202,14 @@ func Authenticator(ja *JWTAuth) func(http.Handler) http.Handler {
 	}
 }
 
+// NewContext
 func NewContext(ctx context.Context, t jwt.Token, err error) context.Context {
 	ctx = context.WithValue(ctx, TokenCtxKey, t)
 	ctx = context.WithValue(ctx, ErrorCtxKey, err)
 	return ctx
 }
 
+// FromContext
 func FromContext(ctx context.Context) (jwt.Token, map[string]interface{}, error) {
 	token, _ := ctx.Value(TokenCtxKey).(jwt.Token)
 
@@ -294,6 +308,7 @@ type contextKey struct {
 	name string
 }
 
+// Stringer
 func (k *contextKey) String() string {
 	return "jwtauth context value " + k.name
 }
