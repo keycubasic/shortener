@@ -17,6 +17,8 @@ func ExampleURLHandler_pingDB() {
 		log.Fatal(err)
 	}
 
+	defer res.Body.Close()
+
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d", res.StatusCode)
 	}
@@ -33,7 +35,7 @@ func ExampleURLHandler_getOriginalURL() {
 
 	body, err := io.ReadAll(res.Body)
 	defer res.Body.Close()
-	
+
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
@@ -162,12 +164,14 @@ func ExampleURLHandler_deleteUserURLs() {
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer res.Body.Close()
 
 	if res.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d", res.StatusCode)
-	}
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	log.Print("deleteUserURLs success")
