@@ -350,8 +350,9 @@ func TestGetUserURLs(t *testing.T) {
 func TestAppendChan(t *testing.T) {
 	ctx := context.Background()
 	cfg := config.NewCfg()
-	cfg.SetTickerSeconds(1)
-	cfg.SetBufferSize(1)
+	cfg.SetBufferSize(4)
+	cfg.SetTickerDuration(1)
+	cfg.SetClosingTimeout(1)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

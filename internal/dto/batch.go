@@ -8,6 +8,7 @@ type Slice []string
 type LinksDto []LinkDto
 
 // LinkDto stores the data transfer object.
+// @Description Data transfer object for batch mode
 type LinkDto struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 	OriginalURL   string `json:"original_url,omitempty"`

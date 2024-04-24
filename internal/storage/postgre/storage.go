@@ -39,7 +39,7 @@ type Links struct {
 
 // NewLinks creates a new Links object
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
-	log.Info("Database DSN:", cfg.GetDatabaseDSN())
+	log.Info("Database DSN: ", cfg.GetDatabaseDSN())
 	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
@@ -81,7 +81,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 
 	err := row.Scan(&val, &del)
 	if err != nil {
-		return "", fmt.Errorf("postgre storage select link from database: %w", err)
+		return "", fmt.Errorf("postgre storage select link from database scan: %w", err)
 	}
 
 	if del.Valid && del.Bool {

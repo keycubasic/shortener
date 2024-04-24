@@ -9,14 +9,14 @@ import (
 
 // Cfg stores the application configuration.
 type Cfg struct {
-	address         string
-	baseURL         string
-	filePath        string
-	databaseDSN     string
-	secretKey       string
-	bufferSize      int
-	tickerSeconds   int
-	closingDuration int
+	address        string
+	baseURL        string
+	filePath       string
+	databaseDSN    string
+	secretKey      string
+	bufferSize     int
+	tickerDuration int
+	closingTimeout int
 }
 
 // NewCfg creates a new Cfg object
@@ -64,19 +64,24 @@ func (c *Cfg) SetBufferSize(bufferSize int) {
 	c.bufferSize = bufferSize
 }
 
-// GetTickerSeconds returns the frequency of running the link removal routine.
-func (c *Cfg) GetTickerSeconds() int {
-	return c.tickerSeconds
+// GetTickerDuration returns the frequency of running the link removal routine.
+func (c *Cfg) GetTickerDuration() int {
+	return c.tickerDuration
 }
 
-// SetTickerSeconds sets the frequency of running the link removal routine.
-func (c *Cfg) SetTickerSeconds(tickerSeconds int) {
-	c.tickerSeconds = tickerSeconds
+// SetTickerDuration sets the frequency of running the link removal routine.
+func (c *Cfg) SetTickerDuration(tickerDuration int) {
+	c.tickerDuration = tickerDuration
 }
 
-// GetClosingDuration returns the duration of the application's termination timeout.
-func (c *Cfg) GetClosingDuration() int {
-	return c.closingDuration
+// GetClosingTimeout returns the duration of the application's termination timeout.
+func (c *Cfg) GetClosingTimeout() int {
+	return c.closingTimeout
+}
+
+// SetClosingTimeout sets the duration of the application's termination timeout.
+func (c *Cfg) SetClosingTimeout(closingTimeout int) {
+	c.closingTimeout = closingTimeout
 }
 
 // ParseCfg parses the application configuration.
@@ -102,11 +107,15 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("s") == nil {
-		flag.IntVar(&c.bufferSize, "s", 1024, "Size of worker buffer")
+		flag.IntVar(&c.bufferSize, "s", 256, "Size of worker buffer")
 	}
 
 	if flag.Lookup("u") == nil {
-		flag.IntVar(&c.tickerSeconds, "u", 10, "Update ticker duration (seconds)")
+		flag.IntVar(&c.tickerDuration, "u", 10, "Deletion ticker duration (seconds)")
+	}
+
+	if flag.Lookup("c") == nil {
+		flag.IntVar(&c.closingTimeout, "c", 1, "Termination timeout (seconds)")
 	}
 
 	flag.Parse()

@@ -1,0 +1,182 @@
+definitions:
+  dto.LinkDto:
+    description: Data transfer object for batch mode
+    properties:
+      correlation_id:
+        type: string
+      original_url:
+        type: string
+      short_url:
+        type: string
+    type: object
+  dto.Request:
+    description: URL shortening request in JSON format
+    properties:
+      url:
+        type: string
+    type: object
+  dto.Response:
+    description: URL shortening response in JSON format
+    properties:
+      result:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Service for shortening URLs
+  title: URL shortener API
+  version: "1.0"
+paths:
+  /:
+    post:
+      consumes:
+      - text/plain
+      description: shorten URL and returns it
+      parameters:
+      - description: Original URL
+        in: body
+        name: URL
+        required: true
+        schema:
+          type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Shorten URL created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+      summary: shorten URL
+      tags:
+      - Resource
+  /{id}:
+    get:
+      description: get original URL by its shortening
+      parameters:
+      - description: Shortening
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "307":
+          description: Temporary Redirect
+        "400":
+          description: Bad Request
+        "410":
+          description: Gone
+      summary: get original URL
+      tags:
+      - Resource
+  /api/shorten:
+    post:
+      consumes:
+      - application/json
+      description: shorten URL and returns it in JSON format
+      parameters:
+      - description: Original URL in JSON format
+        in: body
+        name: URL
+        required: true
+        schema:
+          $ref: '#/definitions/dto.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Shorten URL in JSON format
+          schema:
+            $ref: '#/definitions/dto.Response'
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+      summary: shorten URL in JSON format
+      tags:
+      - Resource
+  /api/shorten/batch:
+    post:
+      consumes:
+      - application/json
+      description: shorten URLs in batch mode and returns it in JSON format
+      parameters:
+      - description: Array of Original URLs in JSON format
+        in: body
+        name: URL
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/dto.LinkDto'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Array of Shorten URLs in JSON format
+          schema:
+            items:
+              $ref: '#/definitions/dto.LinkDto'
+            type: array
+        "400":
+          description: Bad Request
+      summary: shorten URLs in JSON format in batch mode
+      tags:
+      - Resource
+  /api/user/urls:
+    delete:
+      consumes:
+      - application/json
+      description: delete link-shortening pairs in batch mode
+      parameters:
+      - description: Array of shortenings
+        in: body
+        name: URL
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      summary: delete user URLs in batch mode
+      tags:
+      - Resource
+    get:
+      description: get user URLs in JSON format
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.LinkDto'
+            type: array
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+      summary: get user URLs
+      tags:
+      - Resource
+  /ping:
+    get:
+      description: ping database
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: ping DB
+      tags:
+      - Resource
+swagger: "2.0"
