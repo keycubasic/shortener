@@ -1,3 +1,4 @@
+// Package app contains the basic functions for the application.
 package app
 
 import (
@@ -9,33 +10,56 @@ import (
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/mapper"
+	log "github.com/sirupsen/logrus"
 )
 
+// Interface of configuration
 type configuration interface {
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetBufferSize returns the buffer size for batch deletion of links.
 	GetBufferSize() int
-	GetTickerSeconds() int
+	// GetTickerDuration returns the frequency of running the link removal routine.
+	GetTickerDuration() int
+	// GetClosingTimeout returns the duration of the application's termination timeout.
+	GetClosingTimeout() int
 }
 
-//go:generate mockgen -source app.go -destination mock_storage.go -package mock database
+// Interface of database
+//
+//go:generate mockgen -source app.go -destination mock_storage.go -package mock Database
 type Database interface {
-	GetLink(ctx context.Context, key string) (string, error)
-	SetLink(ctx context.Context, userID int, key, link string) error
-	GetShortLink(ctx context.Context, link string) (string, error)
-	Close() error
+	// Migrate migrates database objects.
+	Migrate(ctx context.Context) error
+	// PingContext checks the database connection.
 	PingContext(ctx context.Context) error
+	// GetLink returns the original shortened link from the database.
+	GetLink(ctx context.Context, key string) (string, error)
+	// SetLink sets a new link-shortening pair to the database.
+	SetLink(ctx context.Context, userID int, key, link string) error
+	// GetShortLink returns the shortening of the original link from the database.
+	GetShortLink(ctx context.Context, link string) (string, error)
+	// CreateShortLinksBatch creates link-shortening pairs in the database in batches.
 	CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error)
+	// AddUser adds a new user to the database.
 	AddUser(ctx context.Context) (int, error)
+	// GetUserURLs returns user URLs from the database.
 	GetUserURLs(ctx context.Context, userID int) (dao.LinksDaoBatch, error)
+	// DeleteShortLinksBatch sets the deletion flag on links in batch mode.
 	DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error
+	// Close closes the connection to the database.
+	Close() error
 }
 
+// App stores an interface for application configuration and data storage,
+// as well as a channel for working with the link removal routine.
 type App struct {
 	cfg    configuration
 	db     Database
 	linkCh chan dao.LinkDao
 }
 
+// NewApp creates a new App object
 func NewApp(ctx context.Context, cfg configuration, db Database) *App {
 	bufferSize := cfg.GetBufferSize()
 
@@ -52,10 +76,12 @@ func NewApp(ctx context.Context, cfg configuration, db Database) *App {
 	return instance
 }
 
+// Ping checks the availability of the data store.
 func (a *App) Ping(ctx context.Context) error {
 	return a.db.PingContext(ctx)
 }
 
+// GetLink returns the original link by its shortening.
 func (a *App) GetLink(ctx context.Context, id string) (string, error) {
 	link, err := a.db.GetLink(ctx, id)
 	if err != nil {
@@ -65,6 +91,7 @@ func (a *App) GetLink(ctx context.Context, id string) (string, error) {
 	return link, nil
 }
 
+// CreateShortLink сreates a shortening for a link.
 func (a *App) CreateShortLink(ctx context.Context, userID int, link string) (string, error) {
 	key := gen.GenKey(link)
 
@@ -75,6 +102,7 @@ func (a *App) CreateShortLink(ctx context.Context, userID int, link string) (str
 	return key, nil
 }
 
+// GetShortLink returns the shortening of the original link.
 func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
 	shortLink, err := a.db.GetShortLink(ctx, link)
 	if err != nil {
@@ -84,6 +112,7 @@ func (a *App) GetShortLink(ctx context.Context, link string) (string, error) {
 	return shortLink, nil
 }
 
+// CreateShortLinksBatch creates shortenings for links in batch mode.
 func (a *App) CreateShortLinksBatch(ctx context.Context, userID int, linksDto dto.LinksDto) (dto.LinksDto, error) {
 	capacity := len(linksDto)
 	reqLinksDao := make(dao.LinksDao, 0, capacity)
@@ -107,6 +136,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, userID int, linksDto dt
 	return resLinksDto, nil
 }
 
+// AddUser adds a new user.
 func (a *App) AddUser(ctx context.Context) (int, error) {
 	id, err := a.db.AddUser(ctx)
 	if err != nil {
@@ -116,6 +146,7 @@ func (a *App) AddUser(ctx context.Context) (int, error) {
 	return id, nil
 }
 
+// GetUserURLs returns user URLs.
 func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error) {
 	linksDao, err := a.db.GetUserURLs(ctx, userID)
 	if err != nil {
@@ -132,6 +163,7 @@ func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	return linksDto, nil
 }
 
+// AppendChan sends links marked for deletion to the channel for further processing.
 func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 	for _, s := range slice {
 		linkDao := mapper.LinkToLinkDao(userID, s)
@@ -139,20 +171,30 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 	}
 }
 
+func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) {
+	if len(linksDao) > 0 {
+		a.db.DeleteShortLinksBatch(ctx, linksDao)
+	}
+}
+
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerSeconds()) * time.Second)
+	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerDuration()) * time.Second)
 	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
 
 	for {
 		select {
+		case <-ctx.Done():
+			ctxClosing, closingCancel := context.
+				WithTimeout(context.Background(), time.Duration(a.cfg.GetClosingTimeout())*time.Second)
+			defer closingCancel()
+
+			a.deleteShortLinksBatch(ctxClosing, linksDao)
+			log.Info("Goroutine batchDelete stops")
+			return
 		case linkDao := <-a.linkCh:
 			linksDao = append(linksDao, &linkDao)
 		case <-ticker.C:
-			if len(linksDao) == 0 {
-				continue
-			}
-
-			a.db.DeleteShortLinksBatch(ctx, linksDao)
+			a.deleteShortLinksBatch(ctx, linksDao)
 			linksDao = nil
 		}
 	}

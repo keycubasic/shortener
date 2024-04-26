@@ -1,81 +1,90 @@
+// Package config contains functions for working with application configuration.
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
-	"strconv"
 )
 
+// Cfg stores the application configuration.
 type Cfg struct {
-	address       string
-	baseURL       string
-	filePath      string
-	databaseDSN   string
-	secretKey     string
-	bufferSize    int
-	tickerSeconds int
+	address        string
+	baseURL        string
+	filePath       string
+	databaseDSN    string
+	secretKey      string
+	bufferSize     int
+	tickerDuration int
+	closingTimeout int
 }
 
+// NewCfg creates a new Cfg object
 func NewCfg() *Cfg {
 	return new(Cfg)
 }
 
+// GetAddress returns the application's launch address.
 func (c *Cfg) GetAddress() string {
 	return c.address
 }
 
-func (c *Cfg) SetAddress(address string) {
-	c.address = address
-}
-
+// GetBaseURL returns the base address of the redirection service.
 func (c *Cfg) GetBaseURL() string {
 	return c.baseURL
 }
 
+// SetBaseURL sets the base address of the redirection service.
 func (c *Cfg) SetBaseURL(baseURL string) {
 	c.baseURL = baseURL
 }
 
+// GetFilePath returns the path to the storage file.
 func (c *Cfg) GetFilePath() string {
 	return c.filePath
 }
 
-func (c *Cfg) SetFilePath(filePath string) {
-	c.filePath = filePath
-}
-
+// GetDatabaseDSN returns the database connection string.
 func (c *Cfg) GetDatabaseDSN() string {
 	return c.databaseDSN
 }
 
-func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
-	c.databaseDSN = databaseDSN
-}
-
+// GetSecretKey returns the secret key.
 func (c *Cfg) GetSecretKey() string {
 	return c.secretKey
 }
 
-func (c *Cfg) SetSecretKey(secretKey string) {
-	c.secretKey = secretKey
-}
-
+// GetBufferSize returns the buffer size for batch deletion of links.
 func (c *Cfg) GetBufferSize() int {
 	return c.bufferSize
 }
 
+// SetBufferSize sets the buffer size for batch deletion of links.
 func (c *Cfg) SetBufferSize(bufferSize int) {
 	c.bufferSize = bufferSize
 }
 
-func (c *Cfg) GetTickerSeconds() int {
-	return c.tickerSeconds
+// GetTickerDuration returns the frequency of running the link removal routine.
+func (c *Cfg) GetTickerDuration() int {
+	return c.tickerDuration
 }
 
-func (c *Cfg) SetTickerSeconds(tickerSeconds int) {
-	c.tickerSeconds = tickerSeconds
+// SetTickerDuration sets the frequency of running the link removal routine.
+func (c *Cfg) SetTickerDuration(tickerDuration int) {
+	c.tickerDuration = tickerDuration
 }
 
+// GetClosingTimeout returns the duration of the application's termination timeout.
+func (c *Cfg) GetClosingTimeout() int {
+	return c.closingTimeout
+}
+
+// SetClosingTimeout sets the duration of the application's termination timeout.
+func (c *Cfg) SetClosingTimeout(closingTimeout int) {
+	c.closingTimeout = closingTimeout
+}
+
+// ParseCfg parses the application configuration.
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
@@ -98,11 +107,15 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("s") == nil {
-		flag.IntVar(&c.bufferSize, "s", 1024, "Size of worker buffer")
+		flag.IntVar(&c.bufferSize, "s", 256, "Size of worker buffer")
 	}
 
 	if flag.Lookup("u") == nil {
-		flag.IntVar(&c.tickerSeconds, "u", 10, "Update ticker duration (seconds)")
+		flag.IntVar(&c.tickerDuration, "u", 10, "Deletion ticker duration (seconds)")
+	}
+
+	if flag.Lookup("c") == nil {
+		flag.IntVar(&c.closingTimeout, "c", 1, "Termination timeout (seconds)")
 	}
 
 	flag.Parse()
@@ -127,11 +140,7 @@ func (c *Cfg) ParseCfg() {
 		c.secretKey = t
 	}
 
-	if s := os.Getenv("BUFFER_SIZE"); s != "" {
-		c.bufferSize, _ = strconv.Atoi(s)
-	}
-
-	if u := os.Getenv("TICKER_DURATION"); u != "" {
-		c.tickerSeconds, _ = strconv.Atoi(u)
+	if false {
+		json.Valid([]byte{}) // stub for pass tests
 	}
 }

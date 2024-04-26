@@ -9,33 +9,49 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	dao "github.com/keycubasic/shortener/internal/dao"
 )
 
-// MockDB is a mock of DB interface.
-type MockDB struct {
+// MockDatabase is a mock of Database interface.
+type MockDatabase struct {
 	ctrl     *gomock.Controller
-	recorder *MockDBMockRecorder
+	recorder *MockDatabaseMockRecorder
 }
 
-// MockDBMockRecorder is the mock recorder for MockDB.
-type MockDBMockRecorder struct {
-	mock *MockDB
+// MockDatabaseMockRecorder is the mock recorder for MockDatabase.
+type MockDatabaseMockRecorder struct {
+	mock *MockDatabase
 }
 
-// NewMockDB creates a new mock instance.
-func NewMockDB(ctrl *gomock.Controller) *MockDB {
-	mock := &MockDB{ctrl: ctrl}
-	mock.recorder = &MockDBMockRecorder{mock}
+// NewMockDatabase creates a new mock instance.
+func NewMockDatabase(ctrl *gomock.Controller) *MockDatabase {
+	mock := &MockDatabase{ctrl: ctrl}
+	mock.recorder = &MockDatabaseMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockDB) EXPECT() *MockDBMockRecorder {
+func (m *MockDatabase) EXPECT() *MockDatabaseMockRecorder {
 	return m.recorder
 }
 
+// AddUser mocks base method.
+func (m *MockDatabase) AddUser(ctx context.Context) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUser", ctx)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddUser indicates an expected call of AddUser.
+func (mr *MockDatabaseMockRecorder) AddUser(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUser", reflect.TypeOf((*MockDatabase)(nil).AddUser), ctx)
+}
+
 // Close mocks base method.
-func (m *MockDB) Close() error {
+func (m *MockDatabase) Close() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
@@ -43,28 +59,101 @@ func (m *MockDB) Close() error {
 }
 
 // Close indicates an expected call of Close.
-func (mr *MockDBMockRecorder) Close() *gomock.Call {
+func (mr *MockDatabaseMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockDB)(nil).Close))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockDatabase)(nil).Close))
+}
+
+// CreateShortLinksBatch mocks base method.
+func (m *MockDatabase) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateShortLinksBatch", ctx, userID, linksDao)
+	ret0, _ := ret[0].(dao.LinksDao)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateShortLinksBatch indicates an expected call of CreateShortLinksBatch.
+func (mr *MockDatabaseMockRecorder) CreateShortLinksBatch(ctx, userID, linksDao interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateShortLinksBatch", reflect.TypeOf((*MockDatabase)(nil).CreateShortLinksBatch), ctx, userID, linksDao)
+}
+
+// DeleteShortLinksBatch mocks base method.
+func (m *MockDatabase) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteShortLinksBatch", ctx, linksDao)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteShortLinksBatch indicates an expected call of DeleteShortLinksBatch.
+func (mr *MockDatabaseMockRecorder) DeleteShortLinksBatch(ctx, linksDao interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteShortLinksBatch", reflect.TypeOf((*MockDatabase)(nil).DeleteShortLinksBatch), ctx, linksDao)
 }
 
 // GetLink mocks base method.
-func (m *MockDB) GetLink(key string) (string, error) {
+func (m *MockDatabase) GetLink(ctx context.Context, key string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLink", key)
+	ret := m.ctrl.Call(m, "GetLink", ctx, key)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLink indicates an expected call of GetLink.
-func (mr *MockDBMockRecorder) GetLink(key interface{}) *gomock.Call {
+func (mr *MockDatabaseMockRecorder) GetLink(ctx, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLink", reflect.TypeOf((*MockDB)(nil).GetLink), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLink", reflect.TypeOf((*MockDatabase)(nil).GetLink), ctx, key)
+}
+
+// GetShortLink mocks base method.
+func (m *MockDatabase) GetShortLink(ctx context.Context, link string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetShortLink", ctx, link)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetShortLink indicates an expected call of GetShortLink.
+func (mr *MockDatabaseMockRecorder) GetShortLink(ctx, link interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShortLink", reflect.TypeOf((*MockDatabase)(nil).GetShortLink), ctx, link)
+}
+
+// GetUserURLs mocks base method.
+func (m *MockDatabase) GetUserURLs(ctx context.Context, userID int) (dao.LinksDaoBatch, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserURLs", ctx, userID)
+	ret0, _ := ret[0].(dao.LinksDaoBatch)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserURLs indicates an expected call of GetUserURLs.
+func (mr *MockDatabaseMockRecorder) GetUserURLs(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserURLs", reflect.TypeOf((*MockDatabase)(nil).GetUserURLs), ctx, userID)
+}
+
+// Migrate mocks base method.
+func (m *MockDatabase) Migrate(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Migrate", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Migrate indicates an expected call of Migrate.
+func (mr *MockDatabaseMockRecorder) Migrate(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Migrate", reflect.TypeOf((*MockDatabase)(nil).Migrate), ctx)
 }
 
 // PingContext mocks base method.
-func (m *MockDB) PingContext(ctx context.Context) error {
+func (m *MockDatabase) PingContext(ctx context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PingContext", ctx)
 	ret0, _ := ret[0].(error)
@@ -72,21 +161,21 @@ func (m *MockDB) PingContext(ctx context.Context) error {
 }
 
 // PingContext indicates an expected call of PingContext.
-func (mr *MockDBMockRecorder) PingContext(ctx interface{}) *gomock.Call {
+func (mr *MockDatabaseMockRecorder) PingContext(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PingContext", reflect.TypeOf((*MockDB)(nil).PingContext), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PingContext", reflect.TypeOf((*MockDatabase)(nil).PingContext), ctx)
 }
 
 // SetLink mocks base method.
-func (m *MockDB) SetLink(key, link string) error {
+func (m *MockDatabase) SetLink(ctx context.Context, userID int, key, link string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLink", key, link)
+	ret := m.ctrl.Call(m, "SetLink", ctx, userID, key, link)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLink indicates an expected call of SetLink.
-func (mr *MockDBMockRecorder) SetLink(key, link interface{}) *gomock.Call {
+func (mr *MockDatabaseMockRecorder) SetLink(ctx, userID, key, link interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLink", reflect.TypeOf((*MockDB)(nil).SetLink), key, link)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLink", reflect.TypeOf((*MockDatabase)(nil).SetLink), ctx, userID, key, link)
 }

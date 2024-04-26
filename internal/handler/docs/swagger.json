@@ -1,0 +1,279 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Service for shortening URLs",
+        "title": "URL shortener API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/": {
+            "post": {
+                "description": "shorten URL and returns it",
+                "consumes": [
+                    "text/plain"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "shorten URL",
+                "parameters": [
+                    {
+                        "description": "Original URL",
+                        "name": "URL",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Shorten URL created",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "409": {
+                        "description": "Conflict"
+                    }
+                }
+            }
+        },
+        "/api/shorten": {
+            "post": {
+                "description": "shorten URL and returns it in JSON format",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "shorten URL in JSON format",
+                "parameters": [
+                    {
+                        "description": "Original URL in JSON format",
+                        "name": "URL",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.Request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Shorten URL in JSON format",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "409": {
+                        "description": "Conflict"
+                    }
+                }
+            }
+        },
+        "/api/shorten/batch": {
+            "post": {
+                "description": "shorten URLs in batch mode and returns it in JSON format",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "shorten URLs in JSON format in batch mode",
+                "parameters": [
+                    {
+                        "description": "Array of Original URLs in JSON format",
+                        "name": "URL",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.LinkDto"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Array of Shorten URLs in JSON format",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.LinkDto"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                }
+            }
+        },
+        "/api/user/urls": {
+            "get": {
+                "description": "get user URLs in JSON format",
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "get user URLs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.LinkDto"
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            },
+            "delete": {
+                "description": "delete link-shortening pairs in batch mode",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "delete user URLs in batch mode",
+                "parameters": [
+                    {
+                        "description": "Array of shortenings",
+                        "name": "URL",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "description": "ping database",
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "ping DB",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/{id}": {
+            "get": {
+                "description": "get original URL by its shortening",
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "get original URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shortening",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Temporary Redirect"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "410": {
+                        "description": "Gone"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.LinkDto": {
+            "description": "Data transfer object for batch mode",
+            "type": "object",
+            "properties": {
+                "correlation_id": {
+                    "type": "string"
+                },
+                "original_url": {
+                    "type": "string"
+                },
+                "short_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Request": {
+            "description": "URL shortening request in JSON format",
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Response": {
+            "description": "URL shortening response in JSON format",
+            "type": "object",
+            "properties": {
+                "result": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

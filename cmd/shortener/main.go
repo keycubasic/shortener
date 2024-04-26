@@ -1,7 +1,10 @@
+// Main package of application
 package main
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/keycubasic/shortener/internal/app"
@@ -21,14 +24,25 @@ func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 }
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM)
+	defer stop()
+
 	cfg := config.NewCfg()
 	cfg.ParseCfg()
 	db, err := connectDB(ctx, cfg)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
+
 	defer db.Close()
+
+	err = db.Migrate(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	app := app.NewApp(ctx, cfg, db)
 	handler.RunServer(ctx, cfg, app)

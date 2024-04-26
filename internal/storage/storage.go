@@ -1,3 +1,4 @@
+// Package storage contains functions for working with a hash table.
 package storage
 
 import (
@@ -14,16 +15,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Variables
 var (
+	// ErrUniqueViolation storage unique violation error.
 	ErrUniqueViolation = errors.New("storage unique violation")
-	ErrGone            = errors.New("link already gone")
+	// ErrGone link already gone error.
+	ErrGone = errors.New("link already gone")
 )
 
+// Interface of configuration
 type configuration interface {
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetFilePath returns the path to the storage file.
 	GetFilePath() string
 }
 
+// Links stores the mutex, application configuration, hash table and file storage producer.
 type Links struct {
 	sync.RWMutex
 	cfg      configuration
@@ -31,6 +39,7 @@ type Links struct {
 	producer *loader.Producer
 }
 
+// NewLinks creates a new Links object
 func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 	ls := &Links{
 		cfg:   cfg,
@@ -51,7 +60,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 			return nil, fmt.Errorf("storage close consumer: %w", err)
 		}
 
-		log.Infoln("Records count preloaded from disk storage:", ls.count())
+		log.Info("Records count preloaded from disk storage:", ls.count())
 
 		// Init producer
 		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
@@ -59,11 +68,12 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 		}
 	}
 
-	log.Infoln("Internal storage created...")
+	log.Info("Internal storage created...")
 
 	return ls, nil
 }
 
+// GetLink returns the original link by its shortening from the hash table.
 func (ls *Links) GetLink(_ context.Context, key string) (string, error) {
 	ls.RLock()
 	defer ls.RUnlock()
@@ -77,6 +87,7 @@ func (ls *Links) GetLink(_ context.Context, key string) (string, error) {
 	return val, nil
 }
 
+// SetLink sets a new link-shortenening pair to the hash table.
 func (ls *Links) SetLink(ctx context.Context, userID int, key string, link string) error {
 	ls.Lock()
 	defer ls.Unlock()
@@ -98,6 +109,7 @@ func (ls *Links) SetLink(ctx context.Context, userID int, key string, link strin
 	return nil
 }
 
+// GetShortLink returns the shortening of the original link from the hash table.
 func (ls *Links) GetShortLink(_ context.Context, link string) (string, error) {
 	for k, v := range ls.links {
 		if v == link {
@@ -107,20 +119,24 @@ func (ls *Links) GetShortLink(_ context.Context, link string) (string, error) {
 	return "", fmt.Errorf("storage shortlink not found")
 }
 
+// count
 func (ls *Links) count() int {
 	return len(ls.links)
 }
 
+// Close
 func (ls *Links) Close() error {
 	// for implementation support
 	return nil
 }
 
+// PingContext
 func (ls *Links) PingContext(_ context.Context) error {
 	// for implementation support
 	return nil
 }
 
+// CreateShortLinksBatch creates link-shortening pairs in a hash table in batch mode.
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	ls.Lock()
 	defer ls.Unlock()
@@ -140,24 +156,27 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	return linksDao, nil
 }
 
+// AddUser
 func (ls *Links) AddUser(_ context.Context) (int, error) {
 	// for implementation support
 	return 1, nil
 }
 
+// GetUserURLs
 func (ls *Links) GetUserURLs(_ context.Context, _ int) (dao.LinksDaoBatch, error) {
 	// for implementation support
 	linksDao := make([]*dao.LinkDaoBatch, 0)
-	/*for k, v := range ls.links {
-		linkDao := dao.NewLinkDao()
-		linkDao.ShortURL = k
-		linkDao.OriginalURL = v
-		linksDao = append(linksDao, linkDao)
-	}*/
 	return linksDao, nil
 }
 
+// DeleteShortLinksBatch
 func (ls *Links) DeleteShortLinksBatch(_ context.Context, _ dao.LinksDao) error {
+	// for implementation support
+	return nil
+}
+
+// Migrate
+func (ls *Links) Migrate(_ context.Context) error {
 	// for implementation support
 	return nil
 }

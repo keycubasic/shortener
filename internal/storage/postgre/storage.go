@@ -1,8 +1,10 @@
+// Package postgre contains functions for working with the PostgreSQL database.
 package postgre
 
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"errors"
 	"fmt"
 	"net/url"
@@ -14,95 +16,60 @@ import (
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/storage"
+	"github.com/pressly/goose/v3"
 	log "github.com/sirupsen/logrus"
 )
 
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
+// Interface of configuration
 type configuration interface {
+	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
+	// GetDatabaseDSN returns the database connection string.
 	GetDatabaseDSN() string
 }
 
+// Links stores the application configuration and database engine.
 type Links struct {
 	cfg configuration
 	db  *sqlx.DB
 }
 
+// NewLinks creates a new Links object
 func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
-	log.Infoln("Database DSN:", cfg.GetDatabaseDSN())
+	log.Info("Database DSN: ", cfg.GetDatabaseDSN())
 	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
 	}
 
-	log.Infoln("Database connected...")
-
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage begin transaction: %w", err)
+	if err := db.PingContext(ctx); err != nil {
+		return nil, fmt.Errorf("postgre storage database ping connection: %w", err)
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-	}()
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS users (
-			user_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-			date_create TIMESTAMP DEFAULT now()
-	)
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create table users: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE TABLE IF NOT EXISTS links (
-			uuid int PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-			user_id INT REFERENCES users(user_id),
-			short_url VARCHAR(8),
-			original_url VARCHAR(100),
-			is_deleted BOOLEAN
-		);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create table links: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS short_url_idx ON links (short_url);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create index on field short_url: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		CREATE UNIQUE INDEX IF NOT EXISTS original_url_idx ON links (original_url);
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage create unique index on field original_url: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, `
-		GRANT ALL PRIVILEGES ON links TO PUBLIC;
-		`)
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage grant privilages on table links: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("postgre storage commit: %w", err)
-	}
-
+	log.Info("Database connected...")
 	return &Links{cfg: cfg, db: db}, nil
 }
 
-func (ls *Links) Begin(ctx context.Context) (*sql.Tx, error) {
-	return ls.db.BeginTx(ctx, nil)
+// Migrate migrates database objects.
+func (ls Links) Migrate(ctx context.Context) error {
+	goose.SetBaseFS(embedMigrations)
+	goose.SetLogger(log.StandardLogger())
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("postgre storage database migrate set dialect: %w", err)
+	}
+
+	if err := goose.UpContext(ctx, ls.db.DB, "migrations"); err != nil {
+		return fmt.Errorf("postgre storage database migrate up: %w", err)
+	}
+
+	return nil
 }
 
+// GetLink returns the original shortened link from the database.
 func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	row := ls.db.QueryRowContext(ctx, `
 		SELECT original_url, is_deleted FROM links WHERE short_url = $1
@@ -114,7 +81,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 
 	err := row.Scan(&val, &del)
 	if err != nil {
-		return "", fmt.Errorf("postgre storage select link from database: %w", err)
+		return "", fmt.Errorf("postgre storage select link from database scan: %w", err)
 	}
 
 	if del.Valid && del.Bool {
@@ -124,6 +91,7 @@ func (ls *Links) GetLink(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 
+// SetLink sets a new link-shortening pair to the database.
 func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) error {
 	if _, err := ls.db.ExecContext(ctx, `
 		INSERT INTO links (user_id, short_url, original_url) VALUES ($1,$2,$3)
@@ -141,6 +109,7 @@ func (ls *Links) SetLink(ctx context.Context, userID int, key, link string) erro
 	return nil
 }
 
+// GetShortLink returns the shortening of the original link from the database.
 func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) {
 	row := ls.db.QueryRowContext(ctx, `
 		SELECT short_url FROM links WHERE original_url = $1
@@ -155,14 +124,17 @@ func (ls *Links) GetShortLink(ctx context.Context, link string) (string, error) 
 	return val, nil
 }
 
+// Close closes the connection to the database.
 func (ls *Links) Close() error {
 	return ls.db.Close()
 }
 
+// PingContext checks the database connection.
 func (ls *Links) PingContext(ctx context.Context) error {
 	return ls.db.PingContext(ctx)
 }
 
+// CreateShortLinksBatch creates link-shortening pairs in the database in batches.
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
 	for _, linkDao := range linksDao {
 		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
@@ -183,6 +155,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 	return linksDao, nil
 }
 
+// AddUser adds a new user to the database.
 func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	err = ls.db.QueryRowContext(ctx, `
 		INSERT INTO users DEFAULT VALUES RETURNING user_id
@@ -193,6 +166,7 @@ func (ls *Links) AddUser(ctx context.Context) (id int, err error) {
 	return
 }
 
+// GetUserURLs returns user URLs from the database.
 func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.LinksDaoBatch, err error) {
 	rows, err := ls.db.QueryContext(ctx, `
 		SELECT short_url, original_url FROM links WHERE user_id = $1
@@ -219,6 +193,7 @@ func (ls *Links) GetUserURLs(ctx context.Context, userID int) (linksDao dao.Link
 	return
 }
 
+// DeleteShortLinksBatch sets the deletion flag on links in batch mode.
 func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error {
 	var values []string
 	var args []any
