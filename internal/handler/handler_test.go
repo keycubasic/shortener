@@ -83,6 +83,12 @@ func TestRunServer(t *testing.T) {
 		expectedBody  string
 	}{
 		{
+			name:          "TestHandler0",
+			method:        http.MethodGet,
+			uri:           "/ping",
+			expectedCodes: []int{http.StatusOK},
+		},
+		{
 			name:          "TestHandler1",
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
