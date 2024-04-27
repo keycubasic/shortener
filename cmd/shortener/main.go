@@ -18,9 +18,11 @@ import (
 )
 
 var (
-	buildVersion string = "N/A"
-	buildDate           = readBuildInfo("vcs.time")
-	buildCommit         = readBuildInfo("vcs.revision")
+	buildVersion = "N/A"
+	buildDate    = readBuildInfo("vcs.time")
+	// buildCommit         = readBuildInfo("vcs.revision")
+	// go build -ldflags="-X main.buildCommit=$(git rev-parse HEAD)"
+	buildCommit = "N/A"
 )
 
 func readBuildInfo(key string) string {
