@@ -44,6 +44,11 @@ func (c *Cfg) GetDatabaseDSN() string {
 	return c.databaseDSN
 }
 
+// SetDatabaseDSN sets the database connection string.
+func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
+	c.databaseDSN = databaseDSN
+}
+
 // GetSecretKey returns the secret key.
 func (c *Cfg) GetSecretKey() string {
 	return c.secretKey
