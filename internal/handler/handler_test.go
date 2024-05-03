@@ -38,7 +38,7 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 }
 
 func BenchmarkJSONHandler(b *testing.B) {
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	cfg.SetBufferSize(0)
 	h, err := configureTestHandler(context.Background(), cfg)
@@ -59,7 +59,7 @@ func BenchmarkJSONHandler(b *testing.B) {
 }
 
 func TestRunServer(t *testing.T) {
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	h, err := configureTestHandler(context.Background(), cfg)
 	if err != nil {

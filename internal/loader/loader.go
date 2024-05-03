@@ -43,7 +43,7 @@ func NewProducer(fname string) (*Producer, error) {
 
 // Save saves the data to a file.
 func (p *Producer) Save(_ context.Context, id int, key, link string) error {
-	linkDao := dao.NewLinkDao()
+	linkDao := new(dao.LinkDao)
 	linkDao.UUID = id
 	linkDao.ShortURL = key
 	linkDao.OriginalURL = link
@@ -93,7 +93,7 @@ func NewConsumer(db database, fname string) (*Consumer, error) {
 // Load loads data from a file into the database.
 func (c *Consumer) Load(ctx context.Context) error {
 	for c.scanner.Scan() {
-		linkDao := dao.NewLinkDao()
+		linkDao := new(dao.LinkDao)
 		err := json.Unmarshal([]byte(c.scanner.Text()), linkDao)
 		if err != nil {
 			return fmt.Errorf("loader сonsumer unmarshal dao: %w", err)

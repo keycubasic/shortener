@@ -12,13 +12,3 @@ type Request struct {
 type Response struct {
 	SortenURL string `json:"result"`
 }
-
-// NewRequest creates a new Request object
-func NewRequest() *Request {
-	return new(Request)
-}
-
-// NewResponse creates a new Response object
-func NewResponse(shorten string) *Response {
-	return &Response{SortenURL: shorten}
-}

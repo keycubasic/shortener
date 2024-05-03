@@ -10,7 +10,7 @@ import (
 
 // LinkDtoToLinkDao converts a data transfer object into a data access object.
 func LinkDtoToLinkDao(linkDto dto.LinkDto) *dao.LinkDao {
-	linkDao := dao.NewLinkDao()
+	linkDao := new(dao.LinkDao)
 	linkDao.CorrelationID = linkDto.CorrelationID
 	linkDao.OriginalURL = linkDto.OriginalURL
 	return linkDao
@@ -18,7 +18,7 @@ func LinkDtoToLinkDao(linkDto dto.LinkDto) *dao.LinkDao {
 
 // LinkDaoToLinkDto converts a data access object into a data transfer object.
 func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
-	linkDto := dto.NewLinkDto()
+	linkDto := new(dto.LinkDto)
 	linkDto.CorrelationID = linkDao.CorrelationID
 	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
 	return linkDto
@@ -26,7 +26,7 @@ func LinkDaoToLinkDto(linkDao dao.LinkDao, baseURL string) *dto.LinkDto {
 
 // LinkDaoToLinkDtoURLs converts a batch data access object into a data transfer object.
 func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto {
-	linkDto := dto.NewLinkDto()
+	linkDto := new(dto.LinkDto)
 	linkDto.ShortURL = strings.Join([]string{baseURL, linkDao.ShortURL}, "/")
 	linkDto.OriginalURL = linkDao.OriginalURL
 	return linkDto
@@ -34,7 +34,7 @@ func LinkDaoToLinkDtoURLs(linkDao dao.LinkDaoBatch, baseURL string) *dto.LinkDto
 
 // LinkToLinkDao converts the user ID and link into a data access object.
 func LinkToLinkDao(userID int, link string) *dao.LinkDao {
-	linkDao := dao.NewLinkDao()
+	linkDao := new(dao.LinkDao)
 	linkDao.UserID = userID
 	linkDao.ShortURL = link
 	linkDao.DeletedFlag = true

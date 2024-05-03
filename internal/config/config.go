@@ -19,11 +19,6 @@ type Cfg struct {
 	closingTimeout int
 }
 
-// NewCfg creates a new Cfg object
-func NewCfg() *Cfg {
-	return new(Cfg)
-}
-
 // GetAddress returns the application's launch address.
 func (c *Cfg) GetAddress() string {
 	return c.address

@@ -18,7 +18,7 @@ var errTest = errors.New("oops")
 
 func TestPing(t *testing.T) {
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -58,7 +58,7 @@ func TestPing(t *testing.T) {
 
 func TestGetLink(t *testing.T) {
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -106,7 +106,7 @@ func TestGetLink(t *testing.T) {
 
 func TestCreateShortLink(t *testing.T) {
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -157,7 +157,7 @@ func TestCreateShortLink(t *testing.T) {
 func TestGetShortLink(t *testing.T) {
 	link := "https://practicum.yandex.ru"
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -205,7 +205,7 @@ func TestCreateShortLinksBatch(t *testing.T) {
 	reqlink := "https://practicum.yandex.ru"
 	resLink := "http://localhost:8080/a9tbDian"
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.SetBaseURL("http://localhost:8080")
 
 	ctrl := gomock.NewController(t)
@@ -256,7 +256,7 @@ func TestCreateShortLinksBatch(t *testing.T) {
 
 func TestAddUser(t *testing.T) {
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -302,7 +302,7 @@ func TestGetUserURLs(t *testing.T) {
 	shortening := "a9tbDian"
 	shortURL := "http://localhost:8080/a9tbDian"
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.SetBaseURL("http://localhost:8080")
 
 	ctrl := gomock.NewController(t)
@@ -349,7 +349,7 @@ func TestGetUserURLs(t *testing.T) {
 
 func TestAppendChan(t *testing.T) {
 	ctx := context.Background()
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.SetBufferSize(4)
 	cfg.SetTickerDuration(1)
 	cfg.SetClosingTimeout(1)

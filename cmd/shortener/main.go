@@ -57,7 +57,7 @@ func main() {
 		syscall.SIGTERM)
 	defer stop()
 
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	db, err := connectDB(ctx, cfg)
 	if err != nil {

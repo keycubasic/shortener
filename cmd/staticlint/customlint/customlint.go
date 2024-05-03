@@ -16,14 +16,6 @@ var Analyzer = &analysis.Analyzer{
 	Run:  run,
 }
 
-// A Pass describes a single unit of work:
-// the application of a particular Analyzer to a particular package of Go code.
-// The Pass provides information to the Analyzer's Run function about the package being analyzed,
-// and provides operations to the Run function for reporting diagnostics and other information back to the driver.
-type Pass struct {
-	Files []*ast.File
-}
-
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		if file.Name.Name == "main" {
@@ -37,7 +29,10 @@ func run(pass *analysis.Pass) (interface{}, error) {
 									if fun, ok := call.Fun.(*ast.SelectorExpr); ok {
 										if pkg, ok := fun.X.(*ast.Ident); ok && pkg.Name == "os" {
 											if fun.Sel.Name == "Exit" {
-												pass.Reportf(call.Pos(), "direct calls to os.Exit are not allowed")
+												pass.Report(analysis.Diagnostic{
+													Pos:     call.Pos(),
+													Message: "direct calls of os.Exit are not allowed",
+												})
 											}
 										}
 									}

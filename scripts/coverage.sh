@@ -1,0 +1,4 @@
+#!/bin/sh
+rm coverage.out
+go test -v -coverpkg=./... -coverprofile=coverage.out -covermode=count ./...
+go tool cover -func coverage.out | grep total | awk '{print $3}'

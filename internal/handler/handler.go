@@ -259,7 +259,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := dto.NewRequest()
+	req := new(dto.Request)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -295,7 +295,8 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusConflict
 	}
 
-	res := dto.NewResponse(strings.Join([]string{h.cfg.GetBaseURL(), key}, "/"))
+	res := new(dto.Response)
+	res.SortenURL = strings.Join([]string{h.cfg.GetBaseURL(), key}, "/")
 	resBody, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -20,8 +20,8 @@ func TestLinkDtoToLinkDao(t *testing.T) {
 	}{
 		{
 			name: "TestLinkDtoToLinkDaoOK",
-			args: args{linkDto: *dto.NewLinkDto()},
-			want: dao.NewLinkDao(),
+			args: args{linkDto: *new(dto.LinkDto)},
+			want: new(dao.LinkDao),
 		},
 	}
 	for _, tt := range tests {
@@ -45,7 +45,7 @@ func TestLinkDaoToLinkDto(t *testing.T) {
 	}{
 		{
 			name: "TestLinkDaoToLinkDtoOK",
-			args: args{linkDao: *dao.NewLinkDao(), baseURL: ""},
+			args: args{linkDao: *new(dao.LinkDao), baseURL: ""},
 			want: &dto.LinkDto{ShortURL: "/"},
 		},
 	}

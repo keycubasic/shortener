@@ -75,7 +75,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.Request"
+                            "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.Request"
                         }
                     }
                 ],
@@ -83,7 +83,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Shorten URL in JSON format",
                         "schema": {
-                            "$ref": "#/definitions/dto.Response"
+                            "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.Response"
                         }
                     },
                     "400": {
@@ -117,7 +117,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.LinkDto"
+                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
                             }
                         }
                     }
@@ -128,7 +128,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.LinkDto"
+                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
                             }
                         }
                     },
@@ -151,7 +151,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/dto.LinkDto"
+                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
                             }
                         }
                     },
@@ -250,7 +250,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.LinkDto": {
+        "github_com_keycubasic_shortener_internal_dto.LinkDto": {
             "description": "Data transfer object for batch mode",
             "type": "object",
             "properties": {
@@ -265,7 +265,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.Request": {
+        "github_com_keycubasic_shortener_internal_dto.Request": {
             "description": "URL shortening request in JSON format",
             "type": "object",
             "properties": {
@@ -274,7 +274,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.Response": {
+        "github_com_keycubasic_shortener_internal_dto.Response": {
             "description": "URL shortening response in JSON format",
             "type": "object",
             "properties": {
