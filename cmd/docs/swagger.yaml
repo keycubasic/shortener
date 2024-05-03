@@ -1,5 +1,5 @@
 definitions:
-  github_com_keycubasic_shortener_internal_dto.LinkDto:
+  LinkDto:
     description: Data transfer object for batch mode
     properties:
       correlation_id:
@@ -9,13 +9,13 @@ definitions:
       short_url:
         type: string
     type: object
-  github_com_keycubasic_shortener_internal_dto.Request:
+  Request:
     description: URL shortening request in JSON format
     properties:
       url:
         type: string
     type: object
-  github_com_keycubasic_shortener_internal_dto.Response:
+  Response:
     description: URL shortening response in JSON format
     properties:
       result:
@@ -83,14 +83,14 @@ paths:
         name: URL
         required: true
         schema:
-          $ref: '#/definitions/github_com_keycubasic_shortener_internal_dto.Request'
+          $ref: '#/definitions/Request'
       produces:
       - application/json
       responses:
         "201":
           description: Shorten URL in JSON format
           schema:
-            $ref: '#/definitions/github_com_keycubasic_shortener_internal_dto.Response'
+            $ref: '#/definitions/Response'
         "400":
           description: Bad Request
         "409":
@@ -110,7 +110,7 @@ paths:
         required: true
         schema:
           items:
-            $ref: '#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto'
+            $ref: '#/definitions/LinkDto'
           type: array
       produces:
       - application/json
@@ -119,7 +119,7 @@ paths:
           description: Array of Shorten URLs in JSON format
           schema:
             items:
-              $ref: '#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto'
+              $ref: '#/definitions/LinkDto'
             type: array
         "400":
           description: Bad Request
@@ -157,7 +157,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto'
+              $ref: '#/definitions/LinkDto'
             type: array
         "204":
           description: No Content

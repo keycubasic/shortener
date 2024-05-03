@@ -67,7 +67,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.Request"
+                            "$ref": "#/definitions/Request"
                         }
                     }
                 ],
@@ -75,7 +75,7 @@
                     "201": {
                         "description": "Shorten URL in JSON format",
                         "schema": {
-                            "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.Response"
+                            "$ref": "#/definitions/Response"
                         }
                     },
                     "400": {
@@ -109,7 +109,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
+                                "$ref": "#/definitions/LinkDto"
                             }
                         }
                     }
@@ -120,7 +120,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
+                                "$ref": "#/definitions/LinkDto"
                             }
                         }
                     },
@@ -143,7 +143,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_keycubasic_shortener_internal_dto.LinkDto"
+                                "$ref": "#/definitions/LinkDto"
                             }
                         }
                     },
@@ -242,7 +242,7 @@
         }
     },
     "definitions": {
-        "github_com_keycubasic_shortener_internal_dto.LinkDto": {
+        "LinkDto": {
             "description": "Data transfer object for batch mode",
             "type": "object",
             "properties": {
@@ -257,7 +257,7 @@
                 }
             }
         },
-        "github_com_keycubasic_shortener_internal_dto.Request": {
+        "Request": {
             "description": "URL shortening request in JSON format",
             "type": "object",
             "properties": {
@@ -266,7 +266,7 @@
                 }
             }
         },
-        "github_com_keycubasic_shortener_internal_dto.Response": {
+        "Response": {
             "description": "URL shortening response in JSON format",
             "type": "object",
             "properties": {
