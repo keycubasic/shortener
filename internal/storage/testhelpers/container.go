@@ -2,7 +2,6 @@ package testhelpers
 
 import (
 	"context"
-	_ "path/filepath"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -10,11 +9,13 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// PostgresContainer stores postgres container and database connection string.
 type PostgresContainer struct {
 	*postgres.PostgresContainer
 	ConnectionString string
 }
 
+// CreatePostgresContainer creates postgres container.
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:16.2-alpine"),
