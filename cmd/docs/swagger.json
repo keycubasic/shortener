@@ -67,7 +67,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/Request"
+                            "$ref": "#/definitions/dto.Request"
                         }
                     }
                 ],
@@ -75,7 +75,7 @@
                     "201": {
                         "description": "Shorten URL in JSON format",
                         "schema": {
-                            "$ref": "#/definitions/Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     },
                     "400": {
@@ -109,7 +109,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     }
@@ -120,7 +120,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     },
@@ -143,7 +143,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     },
@@ -242,7 +242,7 @@
         }
     },
     "definitions": {
-        "LinkDto": {
+        "dto.LinkDto": {
             "description": "Data transfer object for batch mode",
             "type": "object",
             "properties": {
@@ -257,7 +257,7 @@
                 }
             }
         },
-        "Request": {
+        "dto.Request": {
             "description": "URL shortening request in JSON format",
             "type": "object",
             "properties": {
@@ -266,7 +266,7 @@
                 }
             }
         },
-        "Response": {
+        "dto.Response": {
             "description": "URL shortening response in JSON format",
             "type": "object",
             "properties": {

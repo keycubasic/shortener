@@ -75,7 +75,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/Request"
+                            "$ref": "#/definitions/dto.Request"
                         }
                     }
                 ],
@@ -83,7 +83,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Shorten URL in JSON format",
                         "schema": {
-                            "$ref": "#/definitions/Response"
+                            "$ref": "#/definitions/dto.Response"
                         }
                     },
                     "400": {
@@ -117,7 +117,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     }
@@ -128,7 +128,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     },
@@ -151,7 +151,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/LinkDto"
+                                "$ref": "#/definitions/dto.LinkDto"
                             }
                         }
                     },
@@ -250,7 +250,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "LinkDto": {
+        "dto.LinkDto": {
             "description": "Data transfer object for batch mode",
             "type": "object",
             "properties": {
@@ -265,7 +265,7 @@ const docTemplate = `{
                 }
             }
         },
-        "Request": {
+        "dto.Request": {
             "description": "URL shortening request in JSON format",
             "type": "object",
             "properties": {
@@ -274,7 +274,7 @@ const docTemplate = `{
                 }
             }
         },
-        "Response": {
+        "dto.Response": {
             "description": "URL shortening response in JSON format",
             "type": "object",
             "properties": {
