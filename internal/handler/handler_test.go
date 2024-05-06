@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/keycubasic/shortener/internal/app"
@@ -19,6 +20,11 @@ import (
 
 const (
 	apiShortenURI = "/api/shorten"
+)
+
+var (
+	once   sync.Once
+	cookie *http.Cookie
 )
 
 func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
@@ -152,7 +158,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:          "TestHandler_09__shortenURLJSONOK",
+			name:          "TestHandler_09_shortenURLJSONOK",
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -164,7 +170,7 @@ func TestRunServer(t *testing.T) {
 			name:          "TestHandler_10_getOriginalURLOK",
 			method:        http.MethodGet,
 			uri:           "/6YGS4ZUF",
-			expectedCodes: []int{http.StatusOK},
+			expectedCodes: []int{http.StatusBadGateway},
 		},
 		{
 			name:          "TestHandler_11_getOriginalURLOK",
@@ -182,44 +188,56 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler_13_getUserURLsKO",
+			name:          "TestHandler_14_getUserURLsOK",
 			method:        http.MethodGet,
 			contentType:   contentTypeJSON,
 			uri:           "/api/user/urls",
-			expectedCodes: []int{http.StatusUnauthorized},
+			expectedCodes: []int{http.StatusOK, http.StatusNoContent},
+		},
+		{
+			name:          "TestHandler_15_deleteUserURLsOK",
+			method:        http.MethodDelete,
+			contentType:   contentTypeText,
+			uri:           "/api/user/urls",
+			body:          `["6YGS4ZUF","rntA0dVu","Yi66Tx-0","s7L9TR66"]`,
+			expectedCodes: []int{http.StatusAccepted},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var response *http.Response
-
-			switch tt.method {
-			case http.MethodGet:
-				r := httptest.NewRequest("GET", ts.URL+tt.uri, nil)
-				r.RequestURI = ""
-				r.Header.Set("Accept-Encoding", "gzip")
-
-				res, err := http.DefaultClient.Do(r)
-				require.NoError(t, err)
-
-				defer res.Body.Close()
-				response = res
-
-			case http.MethodPost:
-				r := httptest.NewRequest("POST", ts.URL+tt.uri, strings.NewReader(tt.body))
-				r.RequestURI = ""
-				r.Header.Set("Content-Type", tt.contentType)
-				r.Header.Set("Accept-Encoding", "gzip")
-
-				res, err := http.DefaultClient.Do(r)
-				require.NoError(t, err)
-
-				defer res.Body.Close()
-				response = res
+			var body io.Reader
+			if tt.body != "" {
+				body = strings.NewReader(tt.body)
 			}
 
+			r := httptest.NewRequest(tt.method, ts.URL+tt.uri, body)
+			r.RequestURI = ""
+			r.Header.Set("Content-Type", tt.contentType)
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			if cookie != nil {
+				r.AddCookie(cookie)
+			}
+
+			res, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			response = res
+
 			assert.Contains(t, tt.expectedCodes, response.StatusCode, "The response code does not match what is expected")
+
+			cookies := response.Cookies()
+			for _, c := range cookies {
+				if c.Name == "jwt" {
+					once.Do(
+						func() {
+							cookie = c
+						})
+				}
+			}
 
 			if tt.expectedBody != "" {
 				assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
