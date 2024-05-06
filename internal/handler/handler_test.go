@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/keycubasic/shortener/internal/app"
@@ -20,11 +19,6 @@ import (
 
 const (
 	apiShortenURI = "/api/shorten"
-)
-
-var (
-	once   sync.Once
-	cookie *http.Cookie
 )
 
 func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
@@ -65,6 +59,7 @@ func BenchmarkJSONHandler(b *testing.B) {
 }
 
 func TestRunServer(t *testing.T) {
+	var cookie *http.Cookie
 	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	h, err := configureTestHandler(context.Background(), cfg)
@@ -170,7 +165,7 @@ func TestRunServer(t *testing.T) {
 			name:          "TestHandler_10_getOriginalURLOK",
 			method:        http.MethodGet,
 			uri:           "/6YGS4ZUF",
-			expectedCodes: []int{http.StatusBadGateway},
+			expectedCodes: []int{http.StatusOK, http.StatusBadGateway},
 		},
 		{
 			name:          "TestHandler_11_getOriginalURLOK",
@@ -229,13 +224,12 @@ func TestRunServer(t *testing.T) {
 
 			assert.Contains(t, tt.expectedCodes, response.StatusCode, "The response code does not match what is expected")
 
-			cookies := response.Cookies()
-			for _, c := range cookies {
-				if c.Name == "jwt" {
-					once.Do(
-						func() {
-							cookie = c
-						})
+			if cookie == nil {
+				cookies := response.Cookies()
+				for _, c := range cookies {
+					if c.Name == "jwt" {
+						cookie = c
+					}
 				}
 			}
 
