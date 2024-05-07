@@ -30,7 +30,7 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	
+
 	defer func() {
 		err = db.Close()
 		if err != nil {
