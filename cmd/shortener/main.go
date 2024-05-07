@@ -18,11 +18,9 @@ import (
 )
 
 var (
-	buildVersion = "N/A"
+	buildVersion = "N/A" // Call: go build -ldflags '-X main.buildVersion=1.0.1' cmd/shortener/main.go
 	buildDate    = readBuildInfo("vcs.time")
-	// buildCommit         = readBuildInfo("vcs.revision")
-	// go build -ldflags="-X main.buildCommit=$(git rev-parse HEAD)"
-	buildCommit = "N/A"
+	buildCommit  = readBuildInfo("vcs.revision")
 )
 
 func readBuildInfo(key string) string {
