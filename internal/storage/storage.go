@@ -138,9 +138,6 @@ func (ls *Links) PingContext(_ context.Context) error {
 
 // CreateShortLinksBatch creates link-shortening pairs in a hash table in batch mode.
 func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao dao.LinksDao) (dao.LinksDao, error) {
-	ls.Lock()
-	defer ls.Unlock()
-
 	for _, linkDao := range linksDao {
 		if _, err := url.ParseRequestURI(linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("storage parse request URI: %w", err)

@@ -5,23 +5,31 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"time"
 )
 
 // Cfg stores the application configuration.
 type Cfg struct {
 	address        string
+	addressTLS     string
 	baseURL        string
 	filePath       string
 	databaseDSN    string
 	secretKey      string
 	bufferSize     int
-	tickerDuration int
-	closingTimeout int
+	tickerDuration time.Duration
+	closingTimeout time.Duration
+	enableHTTPs    bool
 }
 
 // GetAddress returns the application's launch address.
 func (c *Cfg) GetAddress() string {
 	return c.address
+}
+
+// GetAddressTLS returns the application's launch address with TLS.
+func (c *Cfg) GetAddressTLS() string {
+	return c.addressTLS
 }
 
 // GetBaseURL returns the base address of the redirection service.
@@ -65,29 +73,38 @@ func (c *Cfg) SetBufferSize(bufferSize int) {
 }
 
 // GetTickerDuration returns the frequency of running the link removal routine.
-func (c *Cfg) GetTickerDuration() int {
+func (c *Cfg) GetTickerDuration() time.Duration {
 	return c.tickerDuration
 }
 
 // SetTickerDuration sets the frequency of running the link removal routine.
-func (c *Cfg) SetTickerDuration(tickerDuration int) {
+func (c *Cfg) SetTickerDuration(tickerDuration time.Duration) {
 	c.tickerDuration = tickerDuration
 }
 
 // GetClosingTimeout returns the duration of the application's termination timeout.
-func (c *Cfg) GetClosingTimeout() int {
+func (c *Cfg) GetClosingTimeout() time.Duration {
 	return c.closingTimeout
 }
 
 // SetClosingTimeout sets the duration of the application's termination timeout.
-func (c *Cfg) SetClosingTimeout(closingTimeout int) {
+func (c *Cfg) SetClosingTimeout(closingTimeout time.Duration) {
 	c.closingTimeout = closingTimeout
+}
+
+// IsEnableHTTPs returns sign of https protocol support.
+func (c *Cfg) IsEnableHTTPs() bool {
+	return c.enableHTTPs
 }
 
 // ParseCfg parses the application configuration.
 func (c *Cfg) ParseCfg() {
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.address, "a", ":8080", "HTTP server start address")
+	}
+
+	if flag.Lookup("l") == nil {
+		flag.StringVar(&c.addressTLS, "l", ":8443", "HTTPs server start address")
 	}
 
 	if flag.Lookup("b") == nil {
@@ -106,19 +123,30 @@ func (c *Cfg) ParseCfg() {
 		flag.StringVar(&c.secretKey, "t", "keycubasic", "JWT secret key")
 	}
 
-	if flag.Lookup("s") == nil {
-		flag.IntVar(&c.bufferSize, "s", 256, "Size of worker buffer")
+	if flag.Lookup("w") == nil {
+		flag.IntVar(&c.bufferSize, "w", 256, "Size of worker buffer")
 	}
 
 	if flag.Lookup("u") == nil {
-		flag.IntVar(&c.tickerDuration, "u", 10, "Deletion ticker duration (seconds)")
+		flag.DurationVar(&c.tickerDuration, "u", 10, "Deletion ticker duration (seconds)")
 	}
 
 	if flag.Lookup("c") == nil {
-		flag.IntVar(&c.closingTimeout, "c", 1, "Termination timeout (seconds)")
+		flag.DurationVar(&c.closingTimeout, "c", 1, "Termination timeout (seconds)")
+	}
+
+	if flag.Lookup("s") == nil {
+		flag.BoolFunc("s", "Sign of https protocol support", func(s string) error {
+			c.enableHTTPs = true
+			return nil
+		})
 	}
 
 	flag.Parse()
+
+	if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
+		c.enableHTTPs = ok
+	}
 
 	if a := os.Getenv("SERVER_ADDRESS"); a != "" {
 		c.address = a

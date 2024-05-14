@@ -20,9 +20,9 @@ type configuration interface {
 	// GetBufferSize returns the buffer size for batch deletion of links.
 	GetBufferSize() int
 	// GetTickerDuration returns the frequency of running the link removal routine.
-	GetTickerDuration() int
+	GetTickerDuration() time.Duration
 	// GetClosingTimeout returns the duration of the application's termination timeout.
-	GetClosingTimeout() int
+	GetClosingTimeout() time.Duration
 }
 
 // Interface of database
@@ -180,14 +180,14 @@ func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) 
 }
 
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerDuration()) * time.Second)
+	ticker := time.NewTicker(a.cfg.GetTickerDuration() * time.Second)
 	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
 
 	for {
 		select {
 		case <-ctx.Done():
 			ctxClosing, closingCancel := context.
-				WithTimeout(context.Background(), time.Duration(a.cfg.GetClosingTimeout())*time.Second)
+				WithTimeout(context.Background(), a.cfg.GetClosingTimeout()*time.Second)
 			defer closingCancel()
 
 			a.deleteShortLinksBatch(ctxClosing, linksDao)

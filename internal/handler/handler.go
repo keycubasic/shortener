@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/keycubasic/shortener/internal/middleware"
 	"github.com/keycubasic/shortener/internal/storage"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/keycubasic/shortener/cmd/docs"
@@ -32,6 +34,8 @@ import (
 var (
 	tokenAuth *auth.JWTAuth
 	json      = jsoniter.ConfigCompatibleWithStandardLibrary
+	//go:embed hosts/whitelist
+	embedWhitelist string
 )
 
 const (
@@ -45,6 +49,8 @@ const (
 type configuration interface {
 	// GetAddress returns the application's launch address.
 	GetAddress() string
+	// GetAddressTLS returns the application's launch address with TLS.
+	GetAddressTLS() string
 	// GetBaseURL returns the base address of the redirection service.
 	GetBaseURL() string
 	// GetFilePath returns the path to the storage file.
@@ -54,9 +60,11 @@ type configuration interface {
 	// GetBufferSize returns the buffer size for batch deletion of links.
 	GetBufferSize() int
 	// GetTickerDuration returns the frequency of running the link removal routine.
-	GetTickerDuration() int
+	GetTickerDuration() time.Duration
 	// GetClosingTimeout returns the duration of the application's termination timeout.
-	GetClosingTimeout() int
+	GetClosingTimeout() time.Duration
+	// GetEnableHTTPs returns sign of https protocol support.
+	IsEnableHTTPs() bool
 }
 
 // Interface of application
@@ -489,17 +497,33 @@ func (h *URLHandler) getRouter() chi.Router {
 func RunServer(ctx context.Context, cfg configuration, app application) {
 	h := newURLHandler(cfg, app)
 	r := h.getRouter()
-	s := http.Server{Addr: cfg.GetAddress(), Handler: r}
+	var addr string
+	var s http.Server
 	g, gCtx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return s.ListenAndServe()
-	})
+	if cfg.IsEnableHTTPs() {
+		addr = cfg.GetAddressTLS()
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(strings.Split(embedWhitelist, "\n")...),
+		}
+		s := http.Server{Addr: addr, Handler: r, TLSConfig: manager.TLSConfig()}
+		g.Go(func() error {
+			return s.ListenAndServeTLS("", "")
+		})
+	} else {
+		addr = cfg.GetAddress()
+		s := http.Server{Addr: addr, Handler: r}
+		g.Go(func() error {
+			return s.ListenAndServe()
+		})
+	}
 
 	log.Infof("Server listening address %s with base URL %s",
-		cfg.GetAddress(), cfg.GetBaseURL())
+		addr, cfg.GetBaseURL())
 
 	ctxWithTimeout, cancel := context.
-		WithTimeout(context.Background(), time.Duration(cfg.GetClosingTimeout())*time.Second)
+		WithTimeout(context.Background(), cfg.GetClosingTimeout()*time.Second)
 	defer cancel()
 
 	g.Go(func() error {

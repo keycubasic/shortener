@@ -189,6 +189,19 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
+			name:        "TestHandler_13_shortenURLJSONBatchOK",
+			method:      http.MethodPost,
+			contentType: contentTypeText,
+			uri:         apiShortenURI + "/batch",
+			body: `[
+				{
+					"correlation_id": "3",
+					"original_url": "https://yahoo.com"
+				}
+			]`,
+			expectedCodes: []int{http.StatusCreated},
+		},
+		{
 			name:          "TestHandler_14_getUserURLsOK",
 			method:        http.MethodGet,
 			contentType:   contentTypeJSON,
