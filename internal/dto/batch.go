@@ -13,9 +13,4 @@ type LinkDto struct {
 	CorrelationID string `json:"correlation_id,omitempty"`
 	OriginalURL   string `json:"original_url,omitempty"`
 	ShortURL      string `json:"short_url,omitempty"`
-}
-
-// NewLinkDto creates a new LinkDto object
-func NewLinkDto() *LinkDto {
-	return new(LinkDto)
-}
+} //@Name dto.LinkDto

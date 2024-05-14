@@ -64,12 +64,12 @@ func NewApp(ctx context.Context, cfg configuration, db Database) *App {
 	bufferSize := cfg.GetBufferSize()
 
 	instance := &App{
-		cfg:    cfg,
-		db:     db,
-		linkCh: make(chan dao.LinkDao, bufferSize),
+		cfg: cfg,
+		db:  db,
 	}
 
 	if bufferSize > 0 {
+		instance.linkCh = make(chan dao.LinkDao, bufferSize)
 		go instance.batchDelete(ctx)
 	}
 
@@ -167,7 +167,9 @@ func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 	for _, s := range slice {
 		linkDao := mapper.LinkToLinkDao(userID, s)
-		a.linkCh <- *linkDao
+		if a.linkCh != nil {
+			a.linkCh <- *linkDao
+		}
 	}
 }
 

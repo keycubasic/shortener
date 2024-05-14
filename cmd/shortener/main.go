@@ -3,7 +3,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -14,6 +16,29 @@ import (
 	"github.com/keycubasic/shortener/internal/storage/postgre"
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	buildVersion = "N/A" // Call: go build -ldflags '-X main.buildVersion=1.0.1' cmd/shortener/main.go
+	buildDate    = readBuildInfo("vcs.time")
+	buildCommit  = readBuildInfo("vcs.revision")
+)
+
+func readBuildInfo(key string) string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == key {
+				return setting.Value
+			}
+		}
+	}
+	return "N/A"
+}
+
+func init() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
 
 func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 	if cfg.GetDatabaseDSN() != "" {
@@ -30,14 +55,19 @@ func main() {
 		syscall.SIGTERM)
 	defer stop()
 
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	db, err := connectDB(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer db.Close()
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	err = db.Migrate(ctx)
 	if err != nil {

@@ -20,7 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	_ "github.com/keycubasic/shortener/internal/handler/docs"
+	_ "github.com/keycubasic/shortener/cmd/docs"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -206,7 +206,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 
 	link := string(body)
 
-	if _, err := url.ParseRequestURI(link); err != nil {
+	if _, err = url.ParseRequestURI(link); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -259,19 +259,19 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req := dto.NewRequest()
+	req := new(dto.Request)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := json.Unmarshal(body, req); err != nil {
+	if err = json.Unmarshal(body, req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if _, err := url.ParseRequestURI(req.URL); err != nil {
+	if _, err = url.ParseRequestURI(req.URL); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -295,7 +295,8 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusConflict
 	}
 
-	res := dto.NewResponse(strings.Join([]string{h.cfg.GetBaseURL(), key}, "/"))
+	res := new(dto.Response)
+	res.SortenURL = strings.Join([]string{h.cfg.GetBaseURL(), key}, "/")
 	resBody, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -336,7 +337,7 @@ func (h *URLHandler) shortenURLJSONBatch(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := json.Unmarshal(body, &reqLinksDto); err != nil {
+	if err = json.Unmarshal(body, &reqLinksDto); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -413,7 +414,7 @@ func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID i
 			return 0, fmt.Errorf("handler get user id add user: %w", err)
 		}
 
-		claims := map[string]any{"user_id": userID}
+		claims = map[string]any{"user_id": userID}
 		_, tokenString, err := tokenAuth.Encode(claims)
 		if err != nil {
 			return 0, fmt.Errorf("handler get user id encode claims: %w", err)
@@ -477,7 +478,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	})
 
 	r.Handle("/debug/pprof/*", http.DefaultServeMux)
-	r.Get("/swagger-ui/*", httpSwagger.Handler(
+	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL(h.cfg.GetAddress()+"/swagger/doc.json"),
 	))
 

@@ -19,11 +19,6 @@ type Cfg struct {
 	closingTimeout int
 }
 
-// NewCfg creates a new Cfg object
-func NewCfg() *Cfg {
-	return new(Cfg)
-}
-
 // GetAddress returns the application's launch address.
 func (c *Cfg) GetAddress() string {
 	return c.address
@@ -47,6 +42,11 @@ func (c *Cfg) GetFilePath() string {
 // GetDatabaseDSN returns the database connection string.
 func (c *Cfg) GetDatabaseDSN() string {
 	return c.databaseDSN
+}
+
+// SetDatabaseDSN sets the database connection string.
+func (c *Cfg) SetDatabaseDSN(databaseDSN string) {
+	c.databaseDSN = databaseDSN
 }
 
 // GetSecretKey returns the secret key.

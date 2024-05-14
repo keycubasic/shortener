@@ -23,8 +23,3 @@ type LinkDaoBatch struct {
 	OriginalURL string
 	DeletedFlag bool
 }
-
-// NewLinkDao creates a new LinkDao object
-func NewLinkDao() *LinkDao {
-	return new(LinkDao)
-}

@@ -52,11 +52,11 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 			return nil, fmt.Errorf("storage create consumer: %w", err)
 		}
 
-		if err := consumer.Load(ctx); err != nil {
+		if err = consumer.Load(ctx); err != nil {
 			return nil, fmt.Errorf("storage load data from file: %w", err)
 		}
 
-		if err := consumer.Close(); err != nil {
+		if err = consumer.Close(); err != nil {
 			return nil, fmt.Errorf("storage close consumer: %w", err)
 		}
 

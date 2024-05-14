@@ -30,7 +30,13 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer db.Close()
+
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	app := app.NewApp(ctx, cfg, db)
 	h := newURLHandler(cfg, app)
@@ -38,7 +44,7 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 }
 
 func BenchmarkJSONHandler(b *testing.B) {
-	cfg := config.NewCfg()
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	cfg.SetBufferSize(0)
 	h, err := configureTestHandler(context.Background(), cfg)
@@ -59,7 +65,8 @@ func BenchmarkJSONHandler(b *testing.B) {
 }
 
 func TestRunServer(t *testing.T) {
-	cfg := config.NewCfg()
+	var cookie *http.Cookie
+	cfg := new(config.Cfg)
 	cfg.ParseCfg()
 	h, err := configureTestHandler(context.Background(), cfg)
 	if err != nil {
@@ -83,14 +90,27 @@ func TestRunServer(t *testing.T) {
 		expectedBody  string
 	}{
 		{
-			name:          "TestHandler1",
+			name:          "TestHandler_00_pingOK",
+			method:        http.MethodGet,
+			uri:           "/ping",
+			expectedCodes: []int{http.StatusOK},
+		},
+		{
+			name:          "TestHandler_01_getUserURLsKO",
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			uri:           "/api/user/urls",
+			expectedCodes: []int{http.StatusUnauthorized},
+		},
+		{
+			name:          "TestHandler_02_shortenURLKO",
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			expectedCodes: []int{http.StatusBadRequest},
 			expectedBody:  "parse \"\": empty url",
 		},
 		{
-			name:          "TestHandler2",
+			name:          "TestHandler_03_shortenURLKO",
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "1\n2",
@@ -98,7 +118,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
-			name:          "TestHandler3",
+			name:          "TestHandler_04_shortenURLKO",
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "1 2",
@@ -106,7 +126,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "parse \"1 2\": invalid URI for request",
 		},
 		{
-			name:          "TestHandler4",
+			name:          "TestHandler_05_shortenURLOK",
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "https://google.com",
@@ -114,7 +134,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "http://localhost:8080/mZmevP23",
 		},
 		{
-			name:          "TestHandler5",
+			name:          "TestHandler_06_shortenURLJSONKO",
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -122,7 +142,7 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler6",
+			name:          "TestHandler_07_shortenURLJSONKO",
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -130,7 +150,7 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler7",
+			name:          "TestHandler_08_shortenURLJSONOK",
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -139,7 +159,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:          "TestHandler8",
+			name:          "TestHandler_09_shortenURLJSONOK",
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -148,50 +168,76 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:          "TestHandler9",
+			name:          "TestHandler_10_getOriginalURLOK",
 			method:        http.MethodGet,
 			uri:           "/6YGS4ZUF",
-			expectedCodes: []int{http.StatusOK},
+			expectedCodes: []int{http.StatusOK, http.StatusBadGateway},
 		},
 		{
-			name:          "TestHandler10",
+			name:          "TestHandler_11_getOriginalURLOK",
 			method:        http.MethodGet,
 			uri:           "/TgIlZU3m",
 			expectedCodes: []int{http.StatusBadRequest},
 			expectedBody:  "target link not found",
+		},
+		{
+			name:          "TestHandler_12_shortenURLJSONBatchKO",
+			method:        http.MethodPost,
+			contentType:   contentTypeJSON,
+			uri:           apiShortenURI + "/batch",
+			body:          "[{\"url\":\"https://ya.ru\"}]",
+			expectedCodes: []int{http.StatusBadRequest},
+		},
+		{
+			name:          "TestHandler_14_getUserURLsOK",
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			uri:           "/api/user/urls",
+			expectedCodes: []int{http.StatusOK, http.StatusNoContent},
+		},
+		{
+			name:          "TestHandler_15_deleteUserURLsOK",
+			method:        http.MethodDelete,
+			contentType:   contentTypeText,
+			uri:           "/api/user/urls",
+			body:          `["6YGS4ZUF","rntA0dVu","Yi66Tx-0","s7L9TR66"]`,
+			expectedCodes: []int{http.StatusAccepted},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var response *http.Response
-
-			switch tt.method {
-			case http.MethodGet:
-				r := httptest.NewRequest("GET", ts.URL+tt.uri, nil)
-				r.RequestURI = ""
-				r.Header.Set("Accept-Encoding", "gzip")
-
-				res, err := http.DefaultClient.Do(r)
-				require.NoError(t, err)
-
-				defer res.Body.Close()
-				response = res
-
-			case http.MethodPost:
-				r := httptest.NewRequest("POST", ts.URL+tt.uri, strings.NewReader(tt.body))
-				r.RequestURI = ""
-				r.Header.Set("Content-Type", tt.contentType)
-				r.Header.Set("Accept-Encoding", "gzip")
-
-				res, err := http.DefaultClient.Do(r)
-				require.NoError(t, err)
-
-				defer res.Body.Close()
-				response = res
+			var body io.Reader
+			if tt.body != "" {
+				body = strings.NewReader(tt.body)
 			}
 
+			r := httptest.NewRequest(tt.method, ts.URL+tt.uri, body)
+			r.RequestURI = ""
+			r.Header.Set("Content-Type", tt.contentType)
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			if cookie != nil {
+				r.AddCookie(cookie)
+			}
+
+			res, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			response = res
+
 			assert.Contains(t, tt.expectedCodes, response.StatusCode, "The response code does not match what is expected")
+
+			if cookie == nil {
+				cookies := response.Cookies()
+				for _, c := range cookies {
+					if c.Name == "jwt" {
+						cookie = c
+					}
+				}
+			}
 
 			if tt.expectedBody != "" {
 				assert.Equal(t, "gzip", response.Header.Get("Content-Encoding"))
