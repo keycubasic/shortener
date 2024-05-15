@@ -40,7 +40,7 @@ type Database interface {
 	Close() error
 }
 
-// App stores an interface for application *config.Cfg and data storage,
+// App stores an interface for application configuration and data storage,
 // as well as a channel for working with the link removal routine.
 type App struct {
 	cfg    *config.Cfg

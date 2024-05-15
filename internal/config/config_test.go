@@ -1,4 +1,4 @@
-// Package config contains functions for working with application *config.Cfg.
+// Package config contains functions for working with application configuration.
 package config
 
 import "testing"
