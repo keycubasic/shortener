@@ -24,7 +24,7 @@ var (
 	ErrGone = errors.New("link already gone")
 )
 
-// Links stores the mutex, application *config.Cfg, hash table and file storage producer.
+// Links stores the mutex, application configuration, hash table and file storage producer.
 type Links struct {
 	sync.RWMutex
 	cfg      *config.Cfg

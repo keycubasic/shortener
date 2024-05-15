@@ -53,7 +53,8 @@ func main() {
 		context.Background(),
 		syscall.SIGINT,
 		syscall.SIGTERM,
-		syscall.SIGQUIT)
+		syscall.SIGQUIT,
+	)
 	defer stop()
 
 	cfg := new(config.Cfg)

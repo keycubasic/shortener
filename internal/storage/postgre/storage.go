@@ -24,7 +24,7 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-// Links stores the application *config.Cfg and database engine.
+// Links stores the application configuration and database engine.
 type Links struct {
 	cfg *config.Cfg
 	db  *sqlx.DB

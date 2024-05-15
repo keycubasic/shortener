@@ -20,7 +20,6 @@ import (
 	"github.com/keycubasic/shortener/internal/middleware"
 	"github.com/keycubasic/shortener/internal/storage"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/keycubasic/shortener/cmd/docs"
@@ -66,7 +65,7 @@ type application interface {
 	AppendChan(ctx context.Context, userID int, links dto.Slice)
 }
 
-// URLHandler stores interfaces for the *config.Cfg and functions of the application.
+// URLHandler stores interfaces for the configuration and functions of the application.
 type URLHandler struct {
 	cfg *config.Cfg
 	app application
@@ -479,7 +478,7 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 	addr := cfg.ServerAddress
 	var s http.Server
 	g, gCtx := errgroup.WithContext(ctx)
-	if cfg.EnableHTTPS {
+	/*if cfg.EnableHTTPS {
 		log.Info("HTTPS enabled")
 		manager := &autocert.Manager{
 			Cache:      autocert.DirCache("cache-dir"),
@@ -490,7 +489,7 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 		g.Go(func() error {
 			return s.ListenAndServeTLS("", "")
 		})
-	} else {
+	} else*/{
 		log.Info("HTTPS disabled")
 		s := http.Server{Addr: addr, Handler: r}
 		g.Go(func() error {
