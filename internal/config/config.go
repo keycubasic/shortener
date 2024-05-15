@@ -18,15 +18,15 @@ var (
 
 // Cfg stores the application *config.Cfg.
 type Cfg struct {
-	ServerAddress  string `json:"server_address"`
-	BaseURL        string `json:"base_url"`
-	FilePath       string `json:"file_storage_path"`
-	DatabaseDSN    string `json:"database_dsn"`
-	SecretKey      string
-	BufferSize     int
-	TickerDuration time.Duration
-	ClosingTimeout time.Duration
-	EnableHTTPS    bool `json:"enable_https"`
+	ServerAddress  string        `json:"server_address"`
+	BaseURL        string        `json:"base_url"`
+	FilePath       string        `json:"file_storage_path"`
+	DatabaseDSN    string        `json:"database_dsn"`
+	SecretKey      string        `json:"-"`
+	BufferSize     int           `json:"-"`
+	TickerDuration time.Duration `json:"-"`
+	ClosingTimeout time.Duration `json:"-"`
+	EnableHTTPS    bool          `json:"enable_https"`
 }
 
 // ParseCfg parses the application *config.Cfg.

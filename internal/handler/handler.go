@@ -501,13 +501,13 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 	log.Infof("Server listening address %s with base URL %s",
 		addr, cfg.BaseURL)
 
-	ctxWithTimeout, cancel := context.
-		WithTimeout(context.Background(), cfg.ClosingTimeout*time.Second)
-	defer cancel()
-
 	g.Go(func() error {
 		<-gCtx.Done()
 		log.Info("Server stops")
+		ctxWithTimeout, cancel := context.
+			WithTimeout(context.Background(), cfg.ClosingTimeout*time.Second)
+		defer cancel()
+
 		return s.Shutdown(ctxWithTimeout)
 	})
 
