@@ -21,11 +21,11 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
+func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 	return storage.NewLinks(ctx, cfg)
 }
 
-func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, error) {
+func configureTestHandler(ctx context.Context, cfg *config.Cfg) (*URLHandler, error) {
 	db, err := connectDB(ctx, cfg)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -46,14 +46,14 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := new(config.Cfg)
 	cfg.ParseCfg()
-	cfg.SetBufferSize(0)
+	cfg.BufferSize = 0
 	h, err := configureTestHandler(context.Background(), cfg)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	body := "{\"url\":\"https://ya.ru\"}"
-	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
+	r := httptest.NewRequest("POST", cfg.BaseURL+apiShortenURI, strings.NewReader(body))
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", contentTypeJSON)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -78,7 +78,7 @@ func TestRunServer(t *testing.T) {
 
 	defer ts.Close()
 	t.Logf("Test server listening address %s with base URL %s and disk store support at %s",
-		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
+		cfg.ServerAddress, cfg.BaseURL, cfg.FilePath)
 
 	tests := []struct {
 		name          string

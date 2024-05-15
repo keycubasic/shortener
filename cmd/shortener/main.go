@@ -41,7 +41,7 @@ func init() {
 }
 
 func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
-	if cfg.GetDatabaseDSN() != "" {
+	if cfg.DatabaseDSN != "" {
 		return postgre.NewLinks(ctx, cfg)
 	} else {
 		return storage.NewLinks(ctx, cfg)
@@ -52,7 +52,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,
-		syscall.SIGTERM)
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 	defer stop()
 
 	cfg := new(config.Cfg)

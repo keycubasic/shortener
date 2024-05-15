@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/loader"
@@ -23,31 +24,23 @@ var (
 	ErrGone = errors.New("link already gone")
 )
 
-// Interface of configuration
-type configuration interface {
-	// GetBaseURL returns the base address of the redirection service.
-	GetBaseURL() string
-	// GetFilePath returns the path to the storage file.
-	GetFilePath() string
-}
-
-// Links stores the mutex, application configuration, hash table and file storage producer.
+// Links stores the mutex, application *config.Cfg, hash table and file storage producer.
 type Links struct {
 	sync.RWMutex
-	cfg      configuration
+	cfg      *config.Cfg
 	links    map[string]string
 	producer *loader.Producer
 }
 
 // NewLinks creates a new Links object
-func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
+func NewLinks(ctx context.Context, cfg *config.Cfg) (*Links, error) {
 	ls := &Links{
 		cfg:   cfg,
 		links: make(map[string]string),
 	}
 
-	if cfg.GetFilePath() != "" {
-		consumer, err := loader.NewConsumer(ls, cfg.GetFilePath())
+	if cfg.FilePath != "" {
+		consumer, err := loader.NewConsumer(ls, cfg.FilePath)
 		if err != nil {
 			return nil, fmt.Errorf("storage create consumer: %w", err)
 		}
@@ -63,7 +56,7 @@ func NewLinks(ctx context.Context, cfg configuration) (*Links, error) {
 		log.Info("Records count preloaded from disk storage:", ls.count())
 
 		// Init producer
-		if ls.producer, err = loader.NewProducer(cfg.GetFilePath()); err != nil {
+		if ls.producer, err = loader.NewProducer(cfg.FilePath); err != nil {
 			return nil, fmt.Errorf("storage create producer: %w", err)
 		}
 	}
@@ -144,7 +137,7 @@ func (ls *Links) CreateShortLinksBatch(ctx context.Context, userID int, linksDao
 		}
 
 		shortURL := gen.GenKey(linkDao.OriginalURL)
-		linkDao.ShortURL = strings.Join([]string{ls.cfg.GetBaseURL(), shortURL}, "/")
+		linkDao.ShortURL = strings.Join([]string{ls.cfg.BaseURL, shortURL}, "/")
 
 		if err := ls.SetLink(ctx, 0, shortURL, linkDao.OriginalURL); err != nil {
 			return nil, fmt.Errorf("storage set link: %w", err)
