@@ -480,6 +480,7 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 	var s http.Server
 	g, gCtx := errgroup.WithContext(ctx)
 	if cfg.EnableHTTPS {
+		log.Info("HTTPS enabled")
 		manager := &autocert.Manager{
 			Cache:      autocert.DirCache("cache-dir"),
 			Prompt:     autocert.AcceptTOS,

@@ -99,8 +99,4 @@ func (c *Cfg) ParseCfg() {
 	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
 		c.SecretKey = t
 	}
-
-	if false {
-		json.Valid([]byte{}) // stub for pass tests
-	}
 }
