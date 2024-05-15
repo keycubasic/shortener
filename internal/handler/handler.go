@@ -491,6 +491,7 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 			return s.ListenAndServeTLS("", "")
 		})
 	} else {
+		log.Info("HTTPS disabled")
 		s := http.Server{Addr: addr, Handler: r}
 		g.Go(func() error {
 			return s.ListenAndServe()
