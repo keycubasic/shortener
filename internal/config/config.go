@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"flag"
 	"os"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -18,15 +17,15 @@ var (
 
 // Cfg stores the application configuration.
 type Cfg struct {
-	ServerAddress  string        `json:"server_address"`
-	BaseURL        string        `json:"base_url"`
-	FilePath       string        `json:"file_storage_path"`
-	DatabaseDSN    string        `json:"database_dsn"`
-	SecretKey      string        `json:"-"`
-	BufferSize     int           `json:"-"`
-	TickerDuration time.Duration `json:"-"`
-	ClosingTimeout time.Duration `json:"-"`
-	EnableHTTPS    bool          `json:"enable_https"`
+	ServerAddress  string `json:"server_address"`
+	BaseURL        string `json:"base_url"`
+	FilePath       string `json:"file_storage_path"`
+	DatabaseDSN    string `json:"database_dsn"`
+	SecretKey      string `json:"-"`
+	BufferSize     int    `json:"-"`
+	TickerDuration int    `json:"-"`
+	ClosingTimeout int    `json:"-"`
+	EnableHTTPS    bool   `json:"enable_https"`
 }
 
 // ParseCfg parses the application configuration.
@@ -60,11 +59,11 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("u") == nil {
-		flag.DurationVar(&c.TickerDuration, "u", 10*time.Second, "Deletion ticker duration (seconds)")
+		flag.IntVar(&c.TickerDuration, "u", 10, "Deletion ticker duration (seconds)")
 	}
 
 	if flag.Lookup("c") == nil {
-		flag.DurationVar(&c.ClosingTimeout, "c", 1*time.Second, "Termination timeout (seconds)")
+		flag.IntVar(&c.ClosingTimeout, "c", 1, "Termination timeout (seconds)")
 	}
 
 	if flag.Lookup("s") == nil {

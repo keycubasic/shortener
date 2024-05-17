@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi"
 	jsoniter "github.com/json-iterator/go"
@@ -485,13 +486,13 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(strings.Split(embedWhitelist, "\n")...),
 		}
-		s := http.Server{Addr: addr, Handler: r, TLSConfig: manager.TLSConfig()}
+		s = http.Server{Addr: addr, Handler: r, TLSConfig: manager.TLSConfig()}
 		g.Go(func() error {
 			return s.ListenAndServeTLS("", "")
 		})
 	} else {
 		log.Info("HTTPS disabled")
-		s := http.Server{Addr: addr, Handler: r}
+		s = http.Server{Addr: addr, Handler: r}
 		g.Go(func() error {
 			return s.ListenAndServe()
 		})
@@ -504,7 +505,7 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 		<-gCtx.Done()
 		log.Info("Server stops")
 		ctxWithTimeout, cancel := context.
-			WithTimeout(context.Background(), cfg.ClosingTimeout)
+			WithTimeout(context.Background(), time.Duration(cfg.ClosingTimeout)*time.Second)
 		defer cancel()
 
 		return s.Shutdown(ctxWithTimeout)
