@@ -64,6 +64,8 @@ type application interface {
 	GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	// AppendChan sends links marked for deletion to the channel for further processing.
 	AppendChan(ctx context.Context, userID int, links dto.Slice)
+	// Close closes the connection to the database.
+	Close() error
 }
 
 // URLHandler stores interfaces for the configuration and functions of the application.

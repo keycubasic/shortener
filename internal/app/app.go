@@ -165,6 +165,7 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) {
 	if len(linksDao) > 0 {
 		a.db.DeleteShortLinksBatch(ctx, linksDao)
+		log.Infof("Goroutine batchDelete processes %d links", len(linksDao))
 	}
 }
 
@@ -192,4 +193,8 @@ func (a *App) batchDelete(ctx context.Context) {
 			linksDao = nil
 		}
 	}
+}
+
+func (a *App) Close() error {
+	return a.db.Close()
 }

@@ -63,7 +63,7 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("c") == nil {
-		flag.IntVar(&c.ClosingTimeout, "c", 1, "Termination timeout (seconds)")
+		flag.IntVar(&c.ClosingTimeout, "c", 10, "Termination timeout (seconds)")
 	}
 
 	if flag.Lookup("s") == nil {
