@@ -169,14 +169,14 @@ func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) 
 }
 
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(a.cfg.TickerDuration * time.Second)
+	ticker := time.NewTicker(a.cfg.TickerDuration)
 	linksDao := make(dao.LinksDao, 0, a.cfg.BufferSize)
 
 	for {
 		select {
 		case <-ctx.Done():
 			ctxClosing, closingCancel := context.
-				WithTimeout(context.Background(), a.cfg.ClosingTimeout*time.Second)
+				WithTimeout(context.Background(), a.cfg.ClosingTimeout)
 			defer closingCancel()
 
 			if err := a.Ping(ctxClosing); err == nil {

@@ -50,11 +50,7 @@ func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 
 func main() {
 	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-	)
+		context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	cfg := new(config.Cfg)

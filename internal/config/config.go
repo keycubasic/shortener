@@ -31,9 +31,9 @@ type Cfg struct {
 
 // ParseCfg parses the application configuration.
 func (c *Cfg) ParseCfg() {
-	/*if embedConfig != nil && json.Valid(embedConfig) {
+	if embedConfig != nil && json.Valid(embedConfig) {
 		json.Unmarshal(embedConfig, c)
-	}*/
+	}
 
 	if flag.Lookup("a") == nil {
 		flag.StringVar(&c.ServerAddress, "a", ":8080", "HTTP server start address")
@@ -60,25 +60,25 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("u") == nil {
-		flag.DurationVar(&c.TickerDuration, "u", 10, "Deletion ticker duration (seconds)")
+		flag.DurationVar(&c.TickerDuration, "u", 10*time.Second, "Deletion ticker duration (seconds)")
 	}
 
 	if flag.Lookup("c") == nil {
-		flag.DurationVar(&c.ClosingTimeout, "c", 1, "Termination timeout (seconds)")
+		flag.DurationVar(&c.ClosingTimeout, "c", 1*time.Second, "Termination timeout (seconds)")
 	}
 
-	/*if flag.Lookup("s") == nil {
+	if flag.Lookup("s") == nil {
 		flag.BoolFunc("s", "Sign of https protocol support", func(s string) error {
 			c.EnableHTTPS = true
 			return nil
 		})
-	}*/
+	}
 
 	flag.Parse()
 
-	/*if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
+	if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
 		c.EnableHTTPS = ok
-	}*/
+	}
 
 	if a := os.Getenv("SERVER_ADDRESS"); a != "" {
 		c.ServerAddress = a

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/keycubasic/shortener/internal/config"
@@ -351,8 +352,8 @@ func TestAppendChan(t *testing.T) {
 	ctx := context.Background()
 	cfg := new(config.Cfg)
 	cfg.BufferSize = 4
-	cfg.TickerDuration = 1
-	cfg.ClosingTimeout = 1
+	cfg.TickerDuration = 1 * time.Second
+	cfg.ClosingTimeout = 1 * time.Second
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
