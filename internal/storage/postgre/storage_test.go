@@ -32,7 +32,7 @@ func (suite *LinksTestSuite) SetupSuite() {
 	}
 	suite.pgContainer = pgContainer
 	cfg := new(config.Cfg)
-	cfg.SetDatabaseDSN(pgContainer.ConnectionString)
+	cfg.DatabaseDSN = pgContainer.ConnectionString
 	db, err := NewLinks(suite.ctx, cfg)
 	if err != nil {
 		log.Fatal(err)

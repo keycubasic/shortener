@@ -194,7 +194,3 @@ func (a *App) batchDelete(ctx context.Context) {
 		}
 	}
 }
-
-func (a *App) Close() error {
-	return a.db.Close()
-}
