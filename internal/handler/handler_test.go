@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
@@ -21,11 +22,11 @@ const (
 	apiShortenURI = "/api/shorten"
 )
 
-func connectDB(ctx context.Context, cfg configuration) (app.Database, error) {
+func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 	return storage.NewLinks(ctx, cfg)
 }
 
-func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, error) {
+func configureTestHandler(ctx context.Context, cfg *config.Cfg) (*URLHandler, error) {
 	db, err := connectDB(ctx, cfg)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -46,14 +47,14 @@ func configureTestHandler(ctx context.Context, cfg configuration) (*URLHandler, 
 func BenchmarkJSONHandler(b *testing.B) {
 	cfg := new(config.Cfg)
 	cfg.ParseCfg()
-	cfg.SetBufferSize(0)
+	cfg.BufferSize = 0
 	h, err := configureTestHandler(context.Background(), cfg)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	body := "{\"url\":\"https://ya.ru\"}"
-	r := httptest.NewRequest("POST", cfg.GetBaseURL()+apiShortenURI, strings.NewReader(body))
+	r := httptest.NewRequest("POST", cfg.BaseURL+apiShortenURI, strings.NewReader(body))
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", contentTypeJSON)
 	r.Header.Set("Accept-Encoding", "gzip")
@@ -78,10 +79,11 @@ func TestRunServer(t *testing.T) {
 
 	defer ts.Close()
 	t.Logf("Test server listening address %s with base URL %s and disk store support at %s",
-		cfg.GetAddress(), cfg.GetBaseURL(), cfg.GetFilePath())
+		cfg.ServerAddress, cfg.BaseURL, cfg.FilePath)
 
 	tests := []struct {
 		name          string
+		order         int
 		method        string
 		uri           string
 		contentType   string
@@ -90,27 +92,31 @@ func TestRunServer(t *testing.T) {
 		expectedBody  string
 	}{
 		{
-			name:          "TestHandler_00_pingOK",
+			name:          "TestHandler_pingOK",
+			order:         1,
 			method:        http.MethodGet,
 			uri:           "/ping",
 			expectedCodes: []int{http.StatusOK},
 		},
 		{
-			name:          "TestHandler_01_getUserURLsKO",
+			name:          "TestHandler_getUserURLsKO",
+			order:         2,
 			method:        http.MethodGet,
 			contentType:   contentTypeJSON,
 			uri:           "/api/user/urls",
 			expectedCodes: []int{http.StatusUnauthorized},
 		},
 		{
-			name:          "TestHandler_02_shortenURLKO",
+			name:          "TestHandler_shortenURLKO",
+			order:         3,
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			expectedCodes: []int{http.StatusBadRequest},
 			expectedBody:  "parse \"\": empty url",
 		},
 		{
-			name:          "TestHandler_03_shortenURLKO",
+			name:          "TestHandler_shortenURLKO",
+			order:         4,
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "1\n2",
@@ -118,7 +124,8 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "parse \"1\\n2\": net/url: invalid control character in URL",
 		},
 		{
-			name:          "TestHandler_04_shortenURLKO",
+			name:          "TestHandler_shortenURLKO",
+			order:         5,
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "1 2",
@@ -126,7 +133,8 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "parse \"1 2\": invalid URI for request",
 		},
 		{
-			name:          "TestHandler_05_shortenURLOK",
+			name:          "TestHandler_shortenURLOK",
+			order:         6,
 			method:        http.MethodPost,
 			contentType:   contentTypeText,
 			body:          "https://google.com",
@@ -134,7 +142,8 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "http://localhost:8080/mZmevP23",
 		},
 		{
-			name:          "TestHandler_06_shortenURLJSONKO",
+			name:          "TestHandler_shortenURLJSONKO",
+			order:         7,
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -142,7 +151,8 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler_07_shortenURLJSONKO",
+			name:          "TestHandler_shortenURLJSONKO",
+			order:         8,
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -150,7 +160,8 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler_08_shortenURLJSONOK",
+			name:          "TestHandler_shortenURLJSONOK",
+			order:         9,
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -159,7 +170,8 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:          "TestHandler_09_shortenURLJSONOK",
+			name:          "TestHandler_shortenURLJSONOK",
+			order:         10,
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI,
@@ -168,20 +180,23 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
-			name:          "TestHandler_10_getOriginalURLOK",
+			name:          "TestHandler_getOriginalURLOK",
+			order:         11,
 			method:        http.MethodGet,
 			uri:           "/6YGS4ZUF",
 			expectedCodes: []int{http.StatusOK, http.StatusBadGateway},
 		},
 		{
-			name:          "TestHandler_11_getOriginalURLOK",
+			name:          "TestHandler_getOriginalURLOK",
+			order:         12,
 			method:        http.MethodGet,
 			uri:           "/TgIlZU3m",
 			expectedCodes: []int{http.StatusBadRequest},
 			expectedBody:  "target link not found",
 		},
 		{
-			name:          "TestHandler_12_shortenURLJSONBatchKO",
+			name:          "TestHandler_shortenURLJSONBatchKO",
+			order:         13,
 			method:        http.MethodPost,
 			contentType:   contentTypeJSON,
 			uri:           apiShortenURI + "/batch",
@@ -189,14 +204,30 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusBadRequest},
 		},
 		{
-			name:          "TestHandler_14_getUserURLsOK",
+			name:        "TestHandler_shortenURLJSONBatchOK",
+			order:       14,
+			method:      http.MethodPost,
+			contentType: contentTypeText,
+			uri:         apiShortenURI + "/batch",
+			body: `[
+				{
+					"correlation_id": "3",
+					"original_url": "https://yahoo.com"
+				}
+			]`,
+			expectedCodes: []int{http.StatusCreated},
+		},
+		{
+			name:          "TestHandler_getUserURLsOK",
+			order:         15,
 			method:        http.MethodGet,
 			contentType:   contentTypeJSON,
 			uri:           "/api/user/urls",
 			expectedCodes: []int{http.StatusOK, http.StatusNoContent},
 		},
 		{
-			name:          "TestHandler_15_deleteUserURLsOK",
+			name:          "TestHandler_deleteUserURLsOK",
+			order:         16,
 			method:        http.MethodDelete,
 			contentType:   contentTypeText,
 			uri:           "/api/user/urls",
@@ -205,7 +236,12 @@ func TestRunServer(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	sort.Slice(tests, func(i, j int) bool {
+		return tests[i].order < tests[j].order
+	})
+
+	for i := 0; i < len(tests)-1; i++ {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			var response *http.Response
 			var body io.Reader

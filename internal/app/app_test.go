@@ -206,7 +206,7 @@ func TestCreateShortLinksBatch(t *testing.T) {
 	resLink := "http://localhost:8080/a9tbDian"
 	ctx := context.Background()
 	cfg := new(config.Cfg)
-	cfg.SetBaseURL("http://localhost:8080")
+	cfg.BaseURL = "http://localhost:8080"
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -303,7 +303,7 @@ func TestGetUserURLs(t *testing.T) {
 	shortURL := "http://localhost:8080/a9tbDian"
 	ctx := context.Background()
 	cfg := new(config.Cfg)
-	cfg.SetBaseURL("http://localhost:8080")
+	cfg.BaseURL = "http://localhost:8080"
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -350,9 +350,9 @@ func TestGetUserURLs(t *testing.T) {
 func TestAppendChan(t *testing.T) {
 	ctx := context.Background()
 	cfg := new(config.Cfg)
-	cfg.SetBufferSize(4)
-	cfg.SetTickerDuration(1)
-	cfg.SetClosingTimeout(1)
+	cfg.BufferSize = 4
+	cfg.TickerDuration = 1
+	cfg.ClosingTimeout = 1
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

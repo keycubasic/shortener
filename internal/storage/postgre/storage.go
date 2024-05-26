@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
+	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/storage"
@@ -23,24 +24,16 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-// Interface of configuration
-type configuration interface {
-	// GetBaseURL returns the base address of the redirection service.
-	GetBaseURL() string
-	// GetDatabaseDSN returns the database connection string.
-	GetDatabaseDSN() string
-}
-
 // Links stores the application configuration and database engine.
 type Links struct {
-	cfg configuration
+	cfg *config.Cfg
 	db  *sqlx.DB
 }
 
 // NewLinks creates a new Links object
-func NewLinks(ctx context.Context, cfg configuration) (links *Links, err error) {
-	log.Info("Database DSN: ", cfg.GetDatabaseDSN())
-	db, err := sqlx.Open("pgx", cfg.GetDatabaseDSN())
+func NewLinks(ctx context.Context, cfg *config.Cfg) (links *Links, err error) {
+	log.Info("Database DSN: ", cfg.DatabaseDSN)
+	db, err := sqlx.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
 		return nil, fmt.Errorf("postgre storage database open connection: %w", err)
 	}

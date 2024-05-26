@@ -6,24 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dao"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/gen"
 	"github.com/keycubasic/shortener/internal/mapper"
 	log "github.com/sirupsen/logrus"
 )
-
-// Interface of configuration
-type configuration interface {
-	// GetBaseURL returns the base address of the redirection service.
-	GetBaseURL() string
-	// GetBufferSize returns the buffer size for batch deletion of links.
-	GetBufferSize() int
-	// GetTickerDuration returns the frequency of running the link removal routine.
-	GetTickerDuration() int
-	// GetClosingTimeout returns the duration of the application's termination timeout.
-	GetClosingTimeout() int
-}
 
 // Interface of database
 //
@@ -54,14 +43,14 @@ type Database interface {
 // App stores an interface for application configuration and data storage,
 // as well as a channel for working with the link removal routine.
 type App struct {
-	cfg    configuration
+	cfg    *config.Cfg
 	db     Database
 	linkCh chan dao.LinkDao
 }
 
 // NewApp creates a new App object
-func NewApp(ctx context.Context, cfg configuration, db Database) *App {
-	bufferSize := cfg.GetBufferSize()
+func NewApp(ctx context.Context, cfg *config.Cfg, db Database) *App {
+	bufferSize := cfg.BufferSize
 
 	instance := &App{
 		cfg: cfg,
@@ -129,7 +118,7 @@ func (a *App) CreateShortLinksBatch(ctx context.Context, userID int, linksDto dt
 	}
 
 	for _, linkDao := range resLinksDao {
-		linkDto := mapper.LinkDaoToLinkDto(*linkDao, a.cfg.GetBaseURL())
+		linkDto := mapper.LinkDaoToLinkDto(*linkDao, a.cfg.BaseURL)
 		resLinksDto = append(resLinksDto, *linkDto)
 	}
 
@@ -156,7 +145,7 @@ func (a *App) GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	linksDto := make([]dto.LinkDto, 0, len(linksDao))
 
 	for _, linkDao := range linksDao {
-		linkDto := mapper.LinkDaoToLinkDtoURLs(*linkDao, a.cfg.GetBaseURL())
+		linkDto := mapper.LinkDaoToLinkDtoURLs(*linkDao, a.cfg.BaseURL)
 		linksDto = append(linksDto, *linkDto)
 	}
 
@@ -176,21 +165,25 @@ func (a *App) AppendChan(ctx context.Context, userID int, slice dto.Slice) {
 func (a *App) deleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) {
 	if len(linksDao) > 0 {
 		a.db.DeleteShortLinksBatch(ctx, linksDao)
+		log.Infof("Goroutine batchDelete processes %d links", len(linksDao))
 	}
 }
 
 func (a *App) batchDelete(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(a.cfg.GetTickerDuration()) * time.Second)
-	linksDao := make(dao.LinksDao, 0, a.cfg.GetBufferSize())
+	ticker := time.NewTicker(time.Duration(a.cfg.TickerDuration) * time.Second)
+	linksDao := make(dao.LinksDao, 0, a.cfg.BufferSize)
 
 	for {
 		select {
 		case <-ctx.Done():
 			ctxClosing, closingCancel := context.
-				WithTimeout(context.Background(), time.Duration(a.cfg.GetClosingTimeout())*time.Second)
+				WithTimeout(context.Background(), time.Duration(a.cfg.ClosingTimeout)*time.Second)
 			defer closingCancel()
 
-			a.deleteShortLinksBatch(ctxClosing, linksDao)
+			if err := a.Ping(ctxClosing); err == nil {
+				a.deleteShortLinksBatch(ctxClosing, linksDao)
+			}
+
 			log.Info("Goroutine batchDelete stops")
 			return
 		case linkDao := <-a.linkCh:

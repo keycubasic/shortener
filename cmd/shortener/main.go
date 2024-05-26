@@ -34,14 +34,14 @@ func readBuildInfo(key string) string {
 	return "N/A"
 }
 
-func init() {
+func printBuildInfo() {
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 }
 
 func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
-	if cfg.GetDatabaseDSN() != "" {
+	if cfg.DatabaseDSN != "" {
 		return postgre.NewLinks(ctx, cfg)
 	} else {
 		return storage.NewLinks(ctx, cfg)
@@ -49,10 +49,9 @@ func connectDB(ctx context.Context, cfg *config.Cfg) (app.Database, error) {
 }
 
 func main() {
+	printBuildInfo()
 	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM)
+		context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	cfg := new(config.Cfg)
@@ -67,6 +66,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Info("Database connection closed")
 	}()
 
 	err = db.Migrate(ctx)

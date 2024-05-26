@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -14,10 +15,12 @@ import (
 	"github.com/go-chi/chi"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/keycubasic/shortener/internal/auth"
+	"github.com/keycubasic/shortener/internal/config"
 	"github.com/keycubasic/shortener/internal/dto"
 	"github.com/keycubasic/shortener/internal/middleware"
 	"github.com/keycubasic/shortener/internal/storage"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/keycubasic/shortener/cmd/docs"
@@ -32,6 +35,8 @@ import (
 var (
 	tokenAuth *auth.JWTAuth
 	json      = jsoniter.ConfigCompatibleWithStandardLibrary
+	//go:embed hosts/whitelist
+	embedWhitelist string
 )
 
 const (
@@ -40,24 +45,6 @@ const (
 
 	unexpectedError = "unexpected error occurred. try again"
 )
-
-// Interface of configuration
-type configuration interface {
-	// GetAddress returns the application's launch address.
-	GetAddress() string
-	// GetBaseURL returns the base address of the redirection service.
-	GetBaseURL() string
-	// GetFilePath returns the path to the storage file.
-	GetFilePath() string
-	// GetSecretKey returns the secret key.
-	GetSecretKey() string
-	// GetBufferSize returns the buffer size for batch deletion of links.
-	GetBufferSize() int
-	// GetTickerDuration returns the frequency of running the link removal routine.
-	GetTickerDuration() int
-	// GetClosingTimeout returns the duration of the application's termination timeout.
-	GetClosingTimeout() int
-}
 
 // Interface of application
 type application interface {
@@ -81,12 +68,12 @@ type application interface {
 
 // URLHandler stores interfaces for the configuration and functions of the application.
 type URLHandler struct {
-	cfg configuration
+	cfg *config.Cfg
 	app application
 }
 
-func newURLHandler(cfg configuration, app application) *URLHandler {
-	tokenAuth = auth.New("HS256", []byte(cfg.GetSecretKey()), nil)
+func newURLHandler(cfg *config.Cfg, app application) *URLHandler {
+	tokenAuth = auth.New("HS256", []byte(cfg.SecretKey), nil)
 	return &URLHandler{cfg: cfg, app: app}
 }
 
@@ -230,7 +217,7 @@ func (h *URLHandler) shortenURL(w http.ResponseWriter, r *http.Request) {
 		statusCode = http.StatusConflict
 	}
 
-	resBody := strings.Join([]string{h.cfg.GetBaseURL(), key}, "/")
+	resBody := strings.Join([]string{h.cfg.BaseURL, key}, "/")
 	w.Header().Add("Content-Type", contentTypeText)
 	w.WriteHeader(statusCode)
 
@@ -296,7 +283,7 @@ func (h *URLHandler) shortenURLJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := new(dto.Response)
-	res.SortenURL = strings.Join([]string{h.cfg.GetBaseURL(), key}, "/")
+	res.SortenURL = strings.Join([]string{h.cfg.BaseURL, key}, "/")
 	resBody, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -479,32 +466,48 @@ func (h *URLHandler) getRouter() chi.Router {
 
 	r.Handle("/debug/pprof/*", http.DefaultServeMux)
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL(h.cfg.GetAddress()+"/swagger/doc.json"),
+		httpSwagger.URL(h.cfg.ServerAddress+"/swagger/doc.json"),
 	))
 
 	return r
 }
 
 // RunServer starts the server.
-func RunServer(ctx context.Context, cfg configuration, app application) {
+func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 	h := newURLHandler(cfg, app)
 	r := h.getRouter()
-	s := http.Server{Addr: cfg.GetAddress(), Handler: r}
+	addr := cfg.ServerAddress
+	var s http.Server
 	g, gCtx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		return s.ListenAndServe()
-	})
+	if cfg.EnableHTTPS {
+		log.Info("HTTPS enabled")
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(strings.Split(embedWhitelist, "\n")...),
+		}
+		s = http.Server{Addr: addr, Handler: r, TLSConfig: manager.TLSConfig()}
+		g.Go(func() error {
+			return s.ListenAndServeTLS("", "")
+		})
+	} else {
+		log.Info("HTTPS disabled")
+		s = http.Server{Addr: addr, Handler: r}
+		g.Go(func() error {
+			return s.ListenAndServe()
+		})
+	}
 
 	log.Infof("Server listening address %s with base URL %s",
-		cfg.GetAddress(), cfg.GetBaseURL())
-
-	ctxWithTimeout, cancel := context.
-		WithTimeout(context.Background(), time.Duration(cfg.GetClosingTimeout())*time.Second)
-	defer cancel()
+		addr, cfg.BaseURL)
 
 	g.Go(func() error {
 		<-gCtx.Done()
 		log.Info("Server stops")
+		ctxWithTimeout, cancel := context.
+			WithTimeout(context.Background(), time.Duration(cfg.ClosingTimeout)*time.Second)
+		defer cancel()
+
 		return s.Shutdown(ctxWithTimeout)
 	})
 
