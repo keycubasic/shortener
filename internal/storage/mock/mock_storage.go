@@ -123,6 +123,21 @@ func (mr *MockDatabaseMockRecorder) GetShortLink(ctx, link interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShortLink", reflect.TypeOf((*MockDatabase)(nil).GetShortLink), ctx, link)
 }
 
+// GetStats mocks base method.
+func (m *MockDatabase) GetStats(ctx context.Context) (*dao.Stats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetStats", ctx)
+	ret0, _ := ret[0].(*dao.Stats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStats indicates an expected call of GetStats.
+func (mr *MockDatabaseMockRecorder) GetStats(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStats", reflect.TypeOf((*MockDatabase)(nil).GetStats), ctx)
+}
+
 // GetUserURLs mocks base method.
 func (m *MockDatabase) GetUserURLs(ctx context.Context, userID int) (dao.LinksDaoBatch, error) {
 	m.ctrl.T.Helper()

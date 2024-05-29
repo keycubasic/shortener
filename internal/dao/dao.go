@@ -23,3 +23,9 @@ type LinkDaoBatch struct {
 	OriginalURL string
 	DeletedFlag bool
 }
+
+// Stats stores the statistics object.
+type Stats struct {
+	URLs  int
+	Users int
+}

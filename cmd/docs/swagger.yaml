@@ -21,6 +21,16 @@ definitions:
       result:
         type: string
     type: object
+  dto.StatsResponse:
+    description: Service statistics response in JSON format
+    properties:
+      urls:
+        description: shortened URL count
+        type: integer
+      users:
+        description: user count
+        type: integer
+    type: object
 info:
   contact: {}
   description: Service for shortening URLs
@@ -70,6 +80,25 @@ paths:
         "410":
           description: Gone
       summary: get original URL
+      tags:
+      - Resource
+  /api/internal/stats:
+    get:
+      description: get service statistics in JSON format
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StatsResponse'
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "500":
+          description: Internal Server Error
+      summary: get service statistics
       tags:
       - Resource
   /api/shorten:

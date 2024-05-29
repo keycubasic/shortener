@@ -382,3 +382,29 @@ func TestAppendChan(t *testing.T) {
 		})
 	}
 }
+
+func TestApp_GetStats(t *testing.T) {
+	ctx := context.Background()
+	cfg := new(config.Cfg)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mock := mock.NewMockDatabase(ctrl)
+	stats := new(dao.Stats)
+	mock.EXPECT().GetStats(gomock.Any()).Return(stats, nil)
+	app := NewApp(ctx, cfg, mock)
+
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "TestApp_GetStatsOK",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := app.GetStats(ctx)
+			require.NoError(t, err)
+		})
+	}
+}

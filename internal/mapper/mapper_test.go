@@ -107,3 +107,27 @@ func TestLinkToLinkDao(t *testing.T) {
 		})
 	}
 }
+
+func TestStatsToStatsResponse(t *testing.T) {
+	type args struct {
+		stats dao.Stats
+	}
+	tests := []struct {
+		name string
+		args args
+		want *dto.StatsResponse
+	}{
+		{
+			name: "TestLinkToLinkDaoOK",
+			args: args{stats: dao.Stats{URLs: 1, Users: 1}},
+			want: &dto.StatsResponse{URLs: 1, Users: 1},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := StatsToStatsResponse(tt.args.stats); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("StatsToStatsResponse() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

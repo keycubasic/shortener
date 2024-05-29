@@ -55,6 +55,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/internal/stats": {
+            "get": {
+                "description": "get service statistics in JSON format",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "get service statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.StatsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/api/shorten": {
             "post": {
                 "description": "shorten URL and returns it in JSON format",
@@ -280,6 +309,20 @@ const docTemplate = `{
             "properties": {
                 "result": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.StatsResponse": {
+            "description": "Service statistics response in JSON format",
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "description": "shortened URL count",
+                    "type": "integer"
+                },
+                "users": {
+                    "description": "user count",
+                    "type": "integer"
                 }
             }
         }

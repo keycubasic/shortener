@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -64,6 +65,8 @@ type application interface {
 	GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	// AppendChan sends links marked for deletion to the channel for further processing.
 	AppendChan(ctx context.Context, userID int, links dto.Slice)
+	// GetStats returns service statistics
+	GetStats(ctx context.Context) (*dto.StatsResponse, error)
 }
 
 // URLHandler stores interfaces for the configuration and functions of the application.
@@ -387,6 +390,62 @@ func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// getStats returns service statistics
+//
+//	@Summary		get service statistics
+//	@Description	get service statistics in JSON format
+//	@Tags			Resource
+//	@Produce		json
+//	@Success		200	{object}	dto.StatsResponse
+//	@Failure		400
+//	@Failure		403
+//	@Failure		500
+//	@Router			/api/internal/stats [get]
+func (h *URLHandler) getStats(w http.ResponseWriter, r *http.Request) {
+	if h.cfg.TrustedSubnet == "" {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+
+	ipStr := r.Header.Get("X-Real-IP")
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		http.Error(w, "failed parse ip from http header", http.StatusBadRequest)
+		return
+	}
+
+	_, ipv4Net, err := net.ParseCIDR(h.cfg.TrustedSubnet)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !ipv4Net.Contains(ip) {
+		http.Error(w, "client's IP address is not part of a trusted subnet", http.StatusForbidden)
+		return
+	}
+
+	stats, err := h.app.GetStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resBody, err := json.Marshal(stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", contentTypeJSON)
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(resBody); err != nil {
+		http.Error(w, unexpectedError, http.StatusInternalServerError)
+		return
+	}
+}
+
 // getUserID returns authorized user ID.
 func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
 	ctx := r.Context()
@@ -454,6 +513,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r.Use(middleware.Gzip)
 	r.Use(middleware.Logger)
 	r.Get("/ping", h.pingDB)
+	r.Get("/api/internal/stats", h.getStats)
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Verifier(tokenAuth))
 		r.Get("/{id}", h.getOriginalURL)

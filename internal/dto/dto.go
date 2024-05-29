@@ -12,3 +12,10 @@ type Request struct {
 type Response struct {
 	SortenURL string `json:"result"`
 } //@Name dto.Response
+
+// StatsResponse stores the statistics response object.
+// @Description Service statistics response in JSON format
+type StatsResponse struct {
+	URLs  int `json:"urls"`  // shortened URL count
+	Users int `json:"users"` // user count
+} //@Name dto.StatsResponse

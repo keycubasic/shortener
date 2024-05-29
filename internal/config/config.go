@@ -26,6 +26,7 @@ type Cfg struct {
 	TickerDuration int    `json:"-"`
 	ClosingTimeout int    `json:"-"`
 	EnableHTTPS    bool   `json:"enable_https"`
+	TrustedSubnet  string `json:"trusted_subnet"`
 }
 
 // ParseCfg parses the application configuration.
@@ -35,23 +36,23 @@ func (c *Cfg) ParseCfg() {
 	}
 
 	if flag.Lookup("a") == nil {
-		flag.StringVar(&c.ServerAddress, "a", ":8080", "HTTP server start address")
+		flag.StringVar(&c.ServerAddress, "a", c.ServerAddress, "HTTP server start address")
 	}
 
 	if flag.Lookup("b") == nil {
-		flag.StringVar(&c.BaseURL, "b", "http://localhost:8080", "Base address of the resulting shortened URL")
+		flag.StringVar(&c.BaseURL, "b", c.BaseURL, "Base address of the resulting shortened URL")
 	}
 
 	if flag.Lookup("f") == nil {
-		flag.StringVar(&c.FilePath, "f", "/tmp/short-url-db.json", "Path to disk storage")
+		flag.StringVar(&c.FilePath, "f", c.FilePath, "Path to disk storage")
 	}
 
 	if flag.Lookup("d") == nil {
-		flag.StringVar(&c.DatabaseDSN, "d", "", "Database connection address")
+		flag.StringVar(&c.DatabaseDSN, "d", c.DatabaseDSN, "Database connection address")
 	}
 
-	if flag.Lookup("t") == nil {
-		flag.StringVar(&c.SecretKey, "t", "keycubasic", "JWT secret key")
+	if flag.Lookup("k") == nil {
+		flag.StringVar(&c.SecretKey, "k", "keycubasic", "JWT secret key")
 	}
 
 	if flag.Lookup("w") == nil {
@@ -71,6 +72,10 @@ func (c *Cfg) ParseCfg() {
 			c.EnableHTTPS = true
 			return nil
 		})
+	}
+
+	if flag.Lookup("t") == nil {
+		flag.StringVar(&c.TrustedSubnet, "t", c.TrustedSubnet, "Trusted subnet")
 	}
 
 	flag.Parse()
@@ -95,7 +100,11 @@ func (c *Cfg) ParseCfg() {
 		c.DatabaseDSN = d
 	}
 
-	if t := os.Getenv("JWT_SECRET_KEY"); t != "" {
-		c.SecretKey = t
+	if k := os.Getenv("JWT_SECRET_KEY"); k != "" {
+		c.SecretKey = k
+	}
+
+	if t := os.Getenv("TRUSTED_SUBNET"); t != "" {
+		c.TrustedSubnet = t
 	}
 }

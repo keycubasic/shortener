@@ -211,3 +211,20 @@ func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 
 	return nil
 }
+
+// GetStats returns service statistics
+func (ls *Links) GetStats(ctx context.Context) (*dao.Stats, error) {
+	row := ls.db.QueryRowContext(ctx, `
+	SELECT count(t.user_id), COALESCE(sum(t.cnt), 0) FROM ( 
+		SELECT user_id, count(uuid) cnt FROM links
+		GROUP BY user_id
+	   ) t`)
+	stats := new(dao.Stats)
+
+	err := row.Scan(&stats.URLs, &stats.Users)
+	if err != nil {
+		return nil, fmt.Errorf("postgre storage scan stats: %w", err)
+	}
+
+	return stats, nil
+}
