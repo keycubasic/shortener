@@ -14,7 +14,10 @@ require (
 	github.com/testcontainers/testcontainers-go v0.30.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.30.0
 	golang.org/x/crypto v0.22.0
+	golang.org/x/net v0.24.0
 	golang.org/x/sync v0.7.0
+	google.golang.org/grpc v1.59.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -32,6 +35,7 @@ require (
 	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/fananchong/test_protobuf_options v0.0.0-20190827065125-0ccc78da2aab // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -85,13 +89,10 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
-	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 

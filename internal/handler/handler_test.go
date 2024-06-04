@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -181,6 +182,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
+			// Fails when internet connection blocked (redirection)
 			name:          "TestHandler_getOriginalURLOK",
 			order:         11,
 			method:        http.MethodGet,
@@ -188,7 +190,7 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusOK, http.StatusBadGateway},
 		},
 		{
-			name:          "TestHandler_getOriginalURLOK",
+			name:          "TestHandler_getOriginalURLKO",
 			order:         12,
 			method:        http.MethodGet,
 			uri:           "/TgIlZU3m",
@@ -278,7 +280,7 @@ func TestRunServer(t *testing.T) {
 
 	for i := 0; i < len(tests)-1; i++ {
 		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name+strconv.Itoa(i), func(t *testing.T) {
 			var response *http.Response
 			var body io.Reader
 			if tt.body != "" {

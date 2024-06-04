@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "internal/grpc/proto";
+
+message PingRequest {;}
+
+message PingResponse {;}
+
+message GetLinkRequest {
+    string id = 1;
+}
+
+message GetLinkResponse {
+    string link = 1;
+}
+
+message GetUserURLsRequest {
+    int32 user_id = 1;
+}
+
+message GetUserURLsResponse {
+    repeated LinkDto links = 1;
+}
+
+message LinkDto {
+    string correlation_id = 1;
+	string original_url = 2;
+	string short_url = 3;
+}
+
+message CreateShortLinkRequest {
+    int32 user_id = 1;
+    string link = 2;
+}
+
+message CreateShortLinkResponse {
+    string short_link = 1;
+}
+
+message CreateShortLinksBatchRequest {
+    int32 user_id = 1;
+    repeated LinkDto links = 2;
+}
+
+message CreateShortLinksBatchResponse {
+    repeated LinkDto links = 1;
+}
+
+message AppendChanRequest {
+    int32 user_id = 1;
+    repeated string links = 2;
+}
+
+message AppendChanResponse {;}
+
+message GetStatsRequest {;}
+
+message GetStatsResponse {
+    int32 urls = 1;
+    int32 users = 2;
+}
+
+service Shortener {
+    rpc PingDB(PingRequest) returns (PingResponse); // PingDB checks the availability of the data store.
+    rpc GetOriginalURL(GetLinkRequest) returns (GetLinkResponse); // GetOriginalURL returns the original link by its shortening.
+	rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse); // GetUserURLs returns user URLs.
+    rpc ShortenURL(CreateShortLinkRequest) returns (CreateShortLinkResponse); // ShortenURL сreates a shortening for a link.
+    rpc ShortenURLBatch(CreateShortLinksBatchRequest) returns (CreateShortLinksBatchResponse); // ShortenURLBatch creates shortenings for links in batch mode.
+    rpc DeleteUserURLs(AppendChanRequest) returns (AppendChanResponse); // DeleteUserURLs sends links marked for deletion to the channel for further processing.
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse); // GetStats returns service statistics.
+}

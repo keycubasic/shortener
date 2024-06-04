@@ -212,7 +212,7 @@ func (ls *Links) DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDa
 	return nil
 }
 
-// GetStats returns service statistics
+// GetStats returns service statistics.
 func (ls *Links) GetStats(ctx context.Context) (*dao.Stats, error) {
 	row := ls.db.QueryRowContext(ctx, `
 	SELECT count(t.user_id), COALESCE(sum(t.cnt), 0) FROM ( 

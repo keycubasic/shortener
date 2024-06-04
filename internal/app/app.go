@@ -36,7 +36,7 @@ type Database interface {
 	GetUserURLs(ctx context.Context, userID int) (dao.LinksDaoBatch, error)
 	// DeleteShortLinksBatch sets the deletion flag on links in batch mode.
 	DeleteShortLinksBatch(ctx context.Context, linksDao dao.LinksDao) error
-	// GetStats returns service statistics
+	// GetStats returns service statistics.
 	GetStats(ctx context.Context) (*dao.Stats, error)
 	// Close closes the connection to the database.
 	Close() error
@@ -197,7 +197,7 @@ func (a *App) batchDelete(ctx context.Context) {
 	}
 }
 
-// GetStats returns service statistics
+// GetStats returns service statistics.
 func (a *App) GetStats(ctx context.Context) (*dto.StatsResponse, error) {
 	stats, err := a.db.GetStats(ctx)
 	if err != nil {

@@ -144,6 +144,12 @@ func (suite *LinksTestSuite) Test_GetStats() {
 	require.Error(t, err)
 }
 
+func (suite *LinksTestSuite) Test_9GetStats() {
+	t := suite.T()
+	_, err := suite.db.GetStats(suite.ctx)
+	require.NoError(t, err)
+}
+
 func TestLinksTestSuite(t *testing.T) {
 	suite.Run(t, new(LinksTestSuite))
 }
