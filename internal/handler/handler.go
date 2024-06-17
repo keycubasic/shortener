@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,7 +22,10 @@ import (
 	"github.com/keycubasic/shortener/internal/storage"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 
 	_ "github.com/keycubasic/shortener/cmd/docs"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -47,7 +51,7 @@ const (
 )
 
 // Interface of application
-type application interface {
+type Application interface {
 	// Ping checks the availability of the data store.
 	Ping(ctx context.Context) error
 	// GetLink returns the original link by its shortening.
@@ -64,15 +68,17 @@ type application interface {
 	GetUserURLs(ctx context.Context, userID int) (dto.LinksDto, error)
 	// AppendChan sends links marked for deletion to the channel for further processing.
 	AppendChan(ctx context.Context, userID int, links dto.Slice)
+	// GetStats returns service statistics.
+	GetStats(ctx context.Context) (*dto.StatsResponse, error)
 }
 
 // URLHandler stores interfaces for the configuration and functions of the application.
 type URLHandler struct {
 	cfg *config.Cfg
-	app application
+	app Application
 }
 
-func newURLHandler(cfg *config.Cfg, app application) *URLHandler {
+func newURLHandler(cfg *config.Cfg, app Application) *URLHandler {
 	tokenAuth = auth.New("HS256", []byte(cfg.SecretKey), nil)
 	return &URLHandler{cfg: cfg, app: app}
 }
@@ -387,6 +393,62 @@ func (h *URLHandler) deleteUserURLs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// getStats returns service statistics.
+//
+//	@Summary		get service statistics
+//	@Description	get service statistics in JSON format
+//	@Tags			Resource
+//	@Produce		json
+//	@Success		200	{object}	dto.StatsResponse
+//	@Failure		400
+//	@Failure		403
+//	@Failure		500
+//	@Router			/api/internal/stats [get]
+func (h *URLHandler) getStats(w http.ResponseWriter, r *http.Request) {
+	if h.cfg.TrustedSubnet == "" {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+
+	ipStr := r.Header.Get("X-Real-IP")
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		http.Error(w, "failed parse ip from http header", http.StatusBadRequest)
+		return
+	}
+
+	_, ipv4Net, err := net.ParseCIDR(h.cfg.TrustedSubnet)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !ipv4Net.Contains(ip) {
+		http.Error(w, "client's IP address is not part of a trusted subnet", http.StatusForbidden)
+		return
+	}
+
+	stats, err := h.app.GetStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resBody, err := json.Marshal(stats)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", contentTypeJSON)
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(resBody); err != nil {
+		http.Error(w, unexpectedError, http.StatusInternalServerError)
+		return
+	}
+}
+
 // getUserID returns authorized user ID.
 func (h *URLHandler) getUserID(w http.ResponseWriter, r *http.Request) (userID int, err error) {
 	ctx := r.Context()
@@ -454,6 +516,7 @@ func (h *URLHandler) getRouter() chi.Router {
 	r.Use(middleware.Gzip)
 	r.Use(middleware.Logger)
 	r.Get("/ping", h.pingDB)
+	r.Get("/api/internal/stats", h.getStats)
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Verifier(tokenAuth))
 		r.Get("/{id}", h.getOriginalURL)
@@ -472,8 +535,21 @@ func (h *URLHandler) getRouter() chi.Router {
 	return r
 }
 
+// httpGrpcRouter separates HTTP and gRPC calls
+func httpGrpcRouter(gsrv *grpc.Server, hsvr http.Handler) http.Handler {
+	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor != 2 {
+			hsvr.ServeHTTP(w, r)
+		}
+
+		if strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			gsrv.ServeHTTP(w, r)
+		}
+	}), &http2.Server{})
+}
+
 // RunServer starts the server.
-func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
+func RunServer(ctx context.Context, cfg *config.Cfg, app Application, gsrv *grpc.Server) {
 	h := newURLHandler(cfg, app)
 	r := h.getRouter()
 	addr := cfg.ServerAddress
@@ -486,13 +562,13 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(strings.Split(embedWhitelist, "\n")...),
 		}
-		s = http.Server{Addr: addr, Handler: r, TLSConfig: manager.TLSConfig()}
+		s = http.Server{Addr: addr, Handler: httpGrpcRouter(gsrv, r), TLSConfig: manager.TLSConfig()}
 		g.Go(func() error {
 			return s.ListenAndServeTLS("", "")
 		})
 	} else {
 		log.Info("HTTPS disabled")
-		s = http.Server{Addr: addr, Handler: r}
+		s = http.Server{Addr: addr, Handler: httpGrpcRouter(gsrv, r)}
 		g.Go(func() error {
 			return s.ListenAndServe()
 		})
@@ -507,6 +583,9 @@ func RunServer(ctx context.Context, cfg *config.Cfg, app application) {
 		ctxWithTimeout, cancel := context.
 			WithTimeout(context.Background(), time.Duration(cfg.ClosingTimeout)*time.Second)
 		defer cancel()
+
+		gsrv.GracefulStop()
+		log.Infof("gRPC server stops")
 
 		return s.Shutdown(ctxWithTimeout)
 	})

@@ -1,5 +1,3 @@
-//go:build integration
-
 package postgre
 
 import (
@@ -138,6 +136,18 @@ func (suite *LinksTestSuite) Test_9_Close() {
 	t := suite.T()
 	err := suite.db.Close()
 	assert.NoError(t, err)
+}
+
+func (suite *LinksTestSuite) Test_GetStats() {
+	t := suite.T()
+	_, err := suite.db.GetStats(suite.ctx)
+	require.Error(t, err)
+}
+
+func (suite *LinksTestSuite) Test_9GetStats() {
+	t := suite.T()
+	_, err := suite.db.GetStats(suite.ctx)
+	require.NoError(t, err)
 }
 
 func TestLinksTestSuite(t *testing.T) {

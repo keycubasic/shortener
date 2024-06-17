@@ -40,3 +40,11 @@ func LinkToLinkDao(userID int, link string) *dao.LinkDao {
 	linkDao.DeletedFlag = true
 	return linkDao
 }
+
+// StatsToStatsResponse converts the statistics data access object into a statistics data transfer object.
+func StatsToStatsResponse(stats dao.Stats) *dto.StatsResponse {
+	return &dto.StatsResponse{
+		URLs:  stats.URLs,
+		Users: stats.Users,
+	}
+}

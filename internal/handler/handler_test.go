@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -87,6 +88,7 @@ func TestRunServer(t *testing.T) {
 		method        string
 		uri           string
 		contentType   string
+		header        string
 		body          string
 		expectedCodes []int
 		expectedBody  string
@@ -180,6 +182,7 @@ func TestRunServer(t *testing.T) {
 			expectedBody:  "{\"result\":\"http://localhost:8080/6YGS4ZUF\"}",
 		},
 		{
+			// Fails when internet connection blocked (redirection)
 			name:          "TestHandler_getOriginalURLOK",
 			order:         11,
 			method:        http.MethodGet,
@@ -187,7 +190,7 @@ func TestRunServer(t *testing.T) {
 			expectedCodes: []int{http.StatusOK, http.StatusBadGateway},
 		},
 		{
-			name:          "TestHandler_getOriginalURLOK",
+			name:          "TestHandler_getOriginalURLKO",
 			order:         12,
 			method:        http.MethodGet,
 			uri:           "/TgIlZU3m",
@@ -234,6 +237,41 @@ func TestRunServer(t *testing.T) {
 			body:          `["6YGS4ZUF","rntA0dVu","Yi66Tx-0","s7L9TR66"]`,
 			expectedCodes: []int{http.StatusAccepted},
 		},
+		{
+			name:          "TestHandler_getStatsOK",
+			order:         17,
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			header:        "192.168.1.1",
+			uri:           "/api/internal/stats",
+			expectedCodes: []int{http.StatusOK},
+		},
+		{
+			name:          "TestHandler_getStatsKO",
+			order:         18,
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			uri:           "/api/internal/stats",
+			expectedCodes: []int{http.StatusBadRequest},
+		},
+		{
+			name:          "TestHandler_getStatsKO",
+			order:         19,
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			header:        "bad",
+			uri:           "/api/internal/stats",
+			expectedCodes: []int{http.StatusBadRequest},
+		},
+		{
+			name:          "TestHandler_getStatsKO",
+			order:         20,
+			method:        http.MethodGet,
+			contentType:   contentTypeJSON,
+			header:        "193.168.1.1",
+			uri:           "/api/internal/stats",
+			expectedCodes: []int{http.StatusForbidden},
+		},
 	}
 
 	sort.Slice(tests, func(i, j int) bool {
@@ -242,7 +280,7 @@ func TestRunServer(t *testing.T) {
 
 	for i := 0; i < len(tests)-1; i++ {
 		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name+strconv.Itoa(i), func(t *testing.T) {
 			var response *http.Response
 			var body io.Reader
 			if tt.body != "" {
@@ -253,6 +291,10 @@ func TestRunServer(t *testing.T) {
 			r.RequestURI = ""
 			r.Header.Set("Content-Type", tt.contentType)
 			r.Header.Set("Accept-Encoding", "gzip")
+
+			if tt.header != "" {
+				r.Header.Set("X-Real-IP", tt.header)
+			}
 
 			if cookie != nil {
 				r.AddCookie(cookie)

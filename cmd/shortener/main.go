@@ -11,6 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/keycubasic/shortener/internal/app"
 	"github.com/keycubasic/shortener/internal/config"
+	gsrv "github.com/keycubasic/shortener/internal/grpc/server"
 	"github.com/keycubasic/shortener/internal/handler"
 	"github.com/keycubasic/shortener/internal/storage"
 	"github.com/keycubasic/shortener/internal/storage/postgre"
@@ -75,5 +76,6 @@ func main() {
 	}
 
 	app := app.NewApp(ctx, cfg, db)
-	handler.RunServer(ctx, cfg, app)
+	gsrv := gsrv.RegisterGrpcServer(ctx, cfg, app)
+	handler.RunServer(ctx, cfg, app, gsrv)
 }

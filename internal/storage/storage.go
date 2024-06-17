@@ -170,3 +170,8 @@ func (ls *Links) Migrate(_ context.Context) error {
 	// for implementation support
 	return nil
 }
+
+// GetStats returns service statistics
+func (ls *Links) GetStats(ctx context.Context) (*dao.Stats, error) {
+	return &dao.Stats{URLs: len(ls.links)}, nil
+}
